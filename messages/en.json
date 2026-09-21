@@ -89,6 +89,7 @@
   "dashboard": {
     "title": "My Dictionaries",
     "create_new": "Create Dictionary",
+    "mashup_dictionaries": "Mash-Up Dictionaries",
     "empty_state": "No dictionaries yet. Create your first one!",
     "search_placeholder": "Search dictionaries or words...",
     "word_count": "{count} words",
@@ -423,6 +424,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "playground": "Playground",
     "library": "Library",
     "blogs": "Blogs",
     "profile": "Profile",
@@ -552,5 +554,46 @@
       "ALREADY_REDEEMED": "You have already redeemed this coupon",
       "INTERNAL_ERROR": "An error occurred. Please try again later."
     }
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Mash up words from your dictionaries and explore AI-generated sentences in real-time.",
+    "select_or_create_pack": "Select or Create Dictionary List",
+    "switch_pack": "Switch Pack",
+    "tabs": {
+      "saved_packs": "Saved Packs",
+      "create_pack": "Create Pack / Quick Play"
+    },
+    "no_saved_packs": "No saved dictionary lists yet. Create your first pack to get started!",
+    "pack_name": "Pack Name",
+    "pack_name_placeholder": "e.g. German Nouns & Verbs",
+    "select_language": "Select Language",
+    "choose_dictionaries": "Choose Dictionaries",
+    "select_dicts_hint": "Select two or more dictionaries sharing this language to pack them.",
+    "launch_playground": "Launch Playground",
+    "quick_play": "Quick Play",
+    "save_and_launch": "Save & Launch",
+    "delete_pack": "Delete Pack",
+    "confirm_delete_pack": "Are you sure you want to delete this pack?",
+    "chosen_words": "Chosen Words",
+    "chosen_words_empty": "Click words in any dictionary table above to mash them up here.",
+    "clear_all": "Clear All",
+    "generate_phrases": "Generate Phrases",
+    "generate_phrases_credit": "Generate Phrases (1 Credit)",
+    "generating": "Generating sentences...",
+    "no_credits_error": "No AI credits remaining. Upgrade or redeem a coupon to generate phrases.",
+    "add_word": "Add Word",
+    "word_placeholder": "New word...",
+    "translation_placeholder": "Translation...",
+    "word_added": "Word added to dictionary!",
+    "suggested_words": "Suggested New Words",
+    "target_dictionary": "Target Dictionary",
+    "add_to_target": "Add to {dictionary}",
+    "added_badge": "Added",
+    "words_count": "{count} words",
+    "reset_layout": "Reset Layout",
+    "need_dictionaries_title": "No Dictionaries Found",
+    "need_dictionaries_desc": "You need at least one dictionary to use the Playground.",
+    "create_dictionary_btn": "Create a Dictionary"
   }
 }

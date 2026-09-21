@@ -89,6 +89,7 @@
   "dashboard": {
     "title": "Meine Wörterbücher",
     "create_new": "Wörterbuch erstellen",
+    "mashup_dictionaries": "Wörterbücher mixen",
     "empty_state": "Noch keine Wörterbücher. Erstellen Sie Ihr erstes!",
     "search_placeholder": "Wörterbücher oder Wörter suchen...",
     "word_count": "{count} Wörter",
@@ -423,6 +424,7 @@
   },
   "nav": {
     "dashboard": "Dashboard",
+    "playground": "Playground",
     "library": "Bibliothek",
     "blogs": "Blogs",
     "profile": "Profil",
@@ -552,5 +554,46 @@
       "ALREADY_REDEEMED": "Du hast diesen Gutschein bereits eingelöst",
       "INTERNAL_ERROR": "Ein Fehler ist aufgetreten. Bitte versuche es später erneut."
     }
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Kombiniere Wörter aus deinen Wörterbüchern und entdecke KI-generierte Sätze in Echtzeit.",
+    "select_or_create_pack": "Wörterbuch-Paket auswählen oder erstellen",
+    "switch_pack": "Paket wechseln",
+    "tabs": {
+      "saved_packs": "Gespeicherte Pakete",
+      "create_pack": "Paket erstellen / Schnellstart"
+    },
+    "no_saved_packs": "Noch keine Wörterbuch-Pakete gespeichert. Erstelle dein erstes Paket!",
+    "pack_name": "Paketname",
+    "pack_name_placeholder": "z.B. Deutsche Nomen & Verben",
+    "select_language": "Sprache wählen",
+    "choose_dictionaries": "Wörterbücher wählen",
+    "select_dicts_hint": "Wähle zwei oder mehr Wörterbücher derselben Sprache aus.",
+    "launch_playground": "Playground starten",
+    "quick_play": "Schnellstart",
+    "save_and_launch": "Speichern & Starten",
+    "delete_pack": "Paket löschen",
+    "confirm_delete_pack": "Bist du sicher, dass du dieses Paket löschen möchtest?",
+    "chosen_words": "Ausgewählte Wörter",
+    "chosen_words_empty": "Klicke auf Wörter in einer der Tabellen oben, um sie hier zu kombinieren.",
+    "clear_all": "Alle löschen",
+    "generate_phrases": "Sätze generieren",
+    "generate_phrases_credit": "Sätze generieren (1 Credit)",
+    "generating": "Sätze werden generiert...",
+    "no_credits_error": "Keine KI-Credits mehr vorhanden.",
+    "add_word": "Wort hinzufügen",
+    "word_placeholder": "Neues Wort...",
+    "translation_placeholder": "Übersetzung...",
+    "word_added": "Wort zum Wörterbuch hinzugefügt!",
+    "suggested_words": "Vorgeschlagene neue Wörter",
+    "target_dictionary": "Ziel-Wörterbuch",
+    "add_to_target": "Zu {dictionary} hinzufügen",
+    "added_badge": "Hinzugefügt",
+    "words_count": "{count} Wörter",
+    "reset_layout": "Layout zurücksetzen",
+    "need_dictionaries_title": "Keine Wörterbücher gefunden",
+    "need_dictionaries_desc": "Du benötigst mindestens ein Wörterbuch, um den Playground zu nutzen.",
+    "create_dictionary_btn": "Wörterbuch erstellen"
   }
 }

@@ -54,4 +54,9 @@ export const qk = {
   coupons: {
     redeem: ["coupons", "redeem"] as const,
   },
+  playground: {
+    lists: ["playground", "lists"] as const,
+    dictionaries: (ids: string[]) =>
+      ["playground", "dictionaries", ids.slice().sort().join(",")] as const,
+  },
 } as const;

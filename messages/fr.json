@@ -89,6 +89,7 @@
   "dashboard": {
     "title": "Mes dictionnaires",
     "create_new": "Créer un dictionnaire",
+    "mashup_dictionaries": "Mixer les dictionnaires",
     "empty_state": "Aucun dictionnaire pour le moment. Créez le premier !",
     "search_placeholder": "Rechercher des dictionnaires ou des mots...",
     "word_count": "{count} mots",
@@ -423,6 +424,7 @@
   },
   "nav": {
     "dashboard": "Tableau de bord",
+    "playground": "Playground",
     "library": "Bibliothèque",
     "blogs": "Blogs",
     "profile": "Profil",
@@ -552,5 +554,46 @@
       "ALREADY_REDEEMED": "Vous avez déjà utilisé ce coupon",
       "INTERNAL_ERROR": "Une erreur est survenue. Veuillez réessayer plus tard."
     }
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Combinez des mots de vos dictionnaires et explorez des phrases générées par l'IA en temps réel.",
+    "select_or_create_pack": "Sélectionner ou créer un pack de dictionnaires",
+    "switch_pack": "Changer de pack",
+    "tabs": {
+      "saved_packs": "Packs enregistrés",
+      "create_pack": "Créer un pack / Jeu rapide"
+    },
+    "no_saved_packs": "Aucun pack enregistré pour le moment. Créez votre premier pack !",
+    "pack_name": "Nom du pack",
+    "pack_name_placeholder": "ex. Noms & Verbes Allemands",
+    "select_language": "Choisir la langue",
+    "choose_dictionaries": "Choisir les dictionnaires",
+    "select_dicts_hint": "Sélectionnez au moins deux dictionnaires partageant cette langue.",
+    "launch_playground": "Lancer le Playground",
+    "quick_play": "Jeu rapide",
+    "save_and_launch": "Enregistrer & Lancer",
+    "delete_pack": "Supprimer le pack",
+    "confirm_delete_pack": "Êtes-vous sûr de vouloir supprimer ce pack ?",
+    "chosen_words": "Mots sélectionnés",
+    "chosen_words_empty": "Cliquez sur les mots des tableaux ci-dessus pour les combiner ici.",
+    "clear_all": "Tout effacer",
+    "generate_phrases": "Générer des phrases",
+    "generate_phrases_credit": "Générer des phrases (1 crédit)",
+    "generating": "Génération des phrases...",
+    "no_credits_error": "Plus de crédits IA disponibles.",
+    "add_word": "Ajouter un mot",
+    "word_placeholder": "Nouveau mot...",
+    "translation_placeholder": "Traduction...",
+    "word_added": "Mot ajouté au dictionnaire !",
+    "suggested_words": "Nouveaux mots suggérés",
+    "target_dictionary": "Dictionnaire cible",
+    "add_to_target": "Ajouter à {dictionary}",
+    "added_badge": "Ajouté",
+    "words_count": "{count} mots",
+    "reset_layout": "Réinitialiser la disposition",
+    "need_dictionaries_title": "Aucun dictionnaire trouvé",
+    "need_dictionaries_desc": "Vous avez besoin d'au moins un dictionnaire pour utiliser le Playground.",
+    "create_dictionary_btn": "Créer un dictionnaire"
   }
 }

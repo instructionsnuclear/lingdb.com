@@ -1,12 +1,21 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BookOpen, Instagram, Mail } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LEGAL_LINKS } from "@/lib/constants/navigation";
 
 export default function Footer({ locale = "en" }: { locale?: string }) {
+  const pathname = usePathname();
   const t = useTranslations("legal");
   const nt = useTranslations("nav");
   const currentYear = new Date().getFullYear();
+
+  // Hide footer on playground infinite canvas page
+  if (pathname?.includes("/playground")) {
+    return null;
+  }
 
   return (
     <footer className="border-t border-[var(--border-color)] bg-[var(--bg)]/80 backdrop-blur-xl">

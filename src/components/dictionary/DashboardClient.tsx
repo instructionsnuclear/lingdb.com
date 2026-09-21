@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Plus, Layers } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
+import Link from 'next/link';
 import SearchBar from '@/components/common/SearchBar';
 import DictionaryGrid from '@/components/dictionary/DictionaryGrid';
 import CreateDictionaryModal from '@/components/dictionary/CreateDictionaryModal';
@@ -18,6 +19,7 @@ export default function DashboardClient({
   dictionaries,
 }: DashboardClientProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocale();
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const debouncedSearch = useDebounce(search);
@@ -41,10 +43,24 @@ export default function DashboardClient({
           placeholder={t('search_placeholder')}
           className="w-full sm:max-w-sm"
         />
-        <Button id="create-dictionary-btn" onClick={() => setIsCreateOpen(true)}>
-          <Plus className="h-4 w-4" />
-          {t('create_new')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          {dictionaries.length >= 2 && (
+            <Link
+              id="mashup-dictionaries-btn"
+              href={`/${locale}/playground`}
+              className="inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.97] bg-white/80 dark:bg-white/5 border border-primary-500/30 hover:border-primary-500 hover:bg-primary-500/10 text-primary-600 dark:text-primary-300 px-4 py-2.5 text-base sm:text-lg rounded-xl gap-2 shadow-xs hover:shadow-md backdrop-blur-md"
+              title="Mash-Up Dictionaries in Playground"
+            >
+              <Layers className="h-4 w-4 text-primary-500" />
+              {t('mashup_dictionaries')}
+            </Link>
+          )}
+
+          <Button id="create-dictionary-btn" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-4 w-4" />
+            {t('create_new')}
+          </Button>
+        </div>
       </div>
 
       {debouncedSearch && filtered.length === 0 ? (

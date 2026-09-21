@@ -58,7 +58,9 @@ export default function Header({ locale = "en" }: { locale?: string }) {
                           ? "library-nav-link"
                           : link.href.includes("tiers")
                             ? "tiers-nav-link"
-                            : undefined
+                            : link.href.includes("playground")
+                              ? "playground-nav-link"
+                              : undefined
                     }
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-lg font-medium transition-colors",

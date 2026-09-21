@@ -89,6 +89,7 @@
   "dashboard": {
     "title": "Sözlüklerim",
     "create_new": "Sözlük Oluştur",
+    "mashup_dictionaries": "Sözlükleri Mixle",
     "empty_state": "Henüz sözlüğünüz yok. İlkini oluşturun!",
     "search_placeholder": "Sözlük veya kelime ara...",
     "word_count": "{count} kelime",
@@ -423,6 +424,7 @@
   },
   "nav": {
     "dashboard": "Sözlüklerim",
+    "playground": "Playground",
     "library": "Kütüphane",
     "blogs": "Haberler",
     "profile": "Profil",
@@ -532,5 +534,46 @@
     "next_btn": "İleri",
     "prev_btn": "Geri",
     "done_btn": "Anladım!"
+  },
+  "playground": {
+    "title": "Playground",
+    "subtitle": "Sözlüklerinizdeki kelimeleri birleştirin ve gerçek zamanlı yapay zeka cümleleri oluşturun.",
+    "select_or_create_pack": "Sözlük Paketi Seç veya Oluştur",
+    "switch_pack": "Paket Değiştir",
+    "tabs": {
+      "saved_packs": "Kayıtlı Paketler",
+      "create_pack": "Paket Oluştur / Hızlı Başlat"
+    },
+    "no_saved_packs": "Henüz kayıtlı paket yok. Başlamak için ilk paketinizi oluşturun!",
+    "pack_name": "Paket Adı",
+    "pack_name_placeholder": "örn. Almanca İsimler ve Fiiller",
+    "select_language": "Dil Seçin",
+    "choose_dictionaries": "Sözlükleri Seçin",
+    "select_dicts_hint": "Aynı dili paylaşan en az iki sözlük seçin.",
+    "launch_playground": "Playground'ı Başlat",
+    "quick_play": "Hızlı Başlat",
+    "save_and_launch": "Kaydet ve Başlat",
+    "delete_pack": "Paketi Sil",
+    "confirm_delete_pack": "Bu paketi silmek istediğinizden emin misiniz?",
+    "chosen_words": "Seçilen Kelimeler",
+    "chosen_words_empty": "Kelimeleri burada harmanlamak için yukarıdaki sözlük tablolarından kelimelere tıklayın.",
+    "clear_all": "Hepsini Temizle",
+    "generate_phrases": "Cümle Oluştur",
+    "generate_phrases_credit": "Cümle Oluştur (1 Kredi)",
+    "generating": "Cümleler oluşturuluyor...",
+    "no_credits_error": "Yapay zeka krediniz kalmadı.",
+    "add_word": "Kelime Ekle",
+    "word_placeholder": "Yeni kelime...",
+    "translation_placeholder": "Çevirisi...",
+    "word_added": "Kelime sözlüğe eklendi!",
+    "suggested_words": "Önerilen Yeni Kelimeler",
+    "target_dictionary": "Hedef Sözlük",
+    "add_to_target": "{dictionary} sözlüğüne ekle",
+    "added_badge": "Eklendi",
+    "words_count": "{count} kelime",
+    "reset_layout": "Yerleşimi Sıfırla",
+    "need_dictionaries_title": "Sözlük Bulunamadı",
+    "need_dictionaries_desc": "Playground'ı kullanmak için en az bir sözlüğe ihtiyacınız var.",
+    "create_dictionary_btn": "Sözlük Oluştur"
   }
 }

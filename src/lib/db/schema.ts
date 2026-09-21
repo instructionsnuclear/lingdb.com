@@ -424,10 +424,46 @@ export const couponRedemptions = pgTable(
   ],
 );
 
+// ─── Dictionary Lists (Playground Packs) ───────────────────
+
+export interface SavedPlaygroundPhrase {
+  id: string;
+  phrase: string;
+  translation: string;
+  matchedWords?: string[];
+  context?: string;
+  createdAt?: string;
+}
+
+export const dictionaryLists = pgTable(
+  "dictionary_lists",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    language: text("language").notNull(),
+    dictionaryIds: jsonb("dictionary_ids").$type<string[]>().notNull(),
+    positions: jsonb("positions").$type<Record<string, { x: number; y: number }>>(),
+    savedPhrases: jsonb("saved_phrases").$type<SavedPlaygroundPhrase[]>().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("dictionary_lists_user_id_idx").on(table.userId),
+  ],
+);
+
 // ─── Relations ──────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
   dictionaries: many(dictionaries),
+  dictionaryLists: many(dictionaryLists),
   dictionaryEditors: many(dictionaryEditors),
   forks: many(forks),
   activityLogs: many(activityLogs),
@@ -572,6 +608,13 @@ export const blogTranslationsRelations = relations(
   }),
 );
 
+export const dictionaryListsRelations = relations(dictionaryLists, ({ one }) => ({
+  user: one(users, {
+    fields: [dictionaryLists.userId],
+    references: [users.id],
+  }),
+}));
+
 // ─── Type Exports ───────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -597,3 +640,5 @@ export type Blog = typeof blogs.$inferSelect;
 export type NewBlog = typeof blogs.$inferInsert;
 export type BlogTranslation = typeof blogTranslations.$inferSelect;
 export type NewBlogTranslation = typeof blogTranslations.$inferInsert;
+export type DictionaryList = typeof dictionaryLists.$inferSelect;
+export type NewDictionaryList = typeof dictionaryLists.$inferInsert;

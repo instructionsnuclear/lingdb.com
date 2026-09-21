@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  Layers,
   Library,
   Trophy,
   FileText,
@@ -20,6 +21,12 @@ export const MAIN_NAV_LINKS = [
     labelKey: "dashboard",
     icon: LayoutDashboard,
     authRequired: true,
+  },
+  {
+    href: "/playground",
+    labelKey: "playground",
+    icon: Layers,
+    authRequired: false,
   },
   {
     href: "/library",
