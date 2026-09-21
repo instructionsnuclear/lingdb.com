@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -30,6 +30,7 @@ export default function CreateDictionaryModal({
   onClose,
 }: CreateDictionaryModalProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("dictionary.create");
   const t_settings = useTranslations("settings");
   const t_common = useTranslations("common");
@@ -79,7 +80,7 @@ export default function CreateDictionaryModal({
 
     setIsSubmitting(true);
     try {
-      await createDictionaryMutation.mutateAsync(result.data);
+      const res = await createDictionaryMutation.mutateAsync(result.data);
 
       toast(t("success"), "success");
       onClose();
@@ -87,7 +88,11 @@ export default function CreateDictionaryModal({
       setDescription("");
       setLanguage("en");
       setIsPublic(false);
-      router.refresh();
+      if (res?.dictionary?.id) {
+        router.push(`/${locale}/dictionary/${res.dictionary.id}`);
+      } else {
+        router.refresh();
+      }
     } catch (error: unknown) {
       toast(getErrorMessage(error, t_common("errors.generic")), "error");
     } finally {

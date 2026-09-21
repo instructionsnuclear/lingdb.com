@@ -1,4 +1,5 @@
 import { http } from "@/lib/api/http";
+import type { Dictionary } from "@/lib/db/schema";
 
 export async function getDictionary(id: string) {
   return http<{ dictionary: Record<string, unknown> }>(
@@ -7,7 +8,7 @@ export async function getDictionary(id: string) {
 }
 
 export async function createDictionary(payload: Record<string, unknown>) {
-  return http<unknown>("/api/dictionaries", {
+  return http<{ dictionary: Dictionary }>("/api/dictionaries", {
     method: "POST",
     body: payload,
   });

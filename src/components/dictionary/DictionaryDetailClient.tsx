@@ -268,7 +268,7 @@ export default function DictionaryDetailClient({
         <div className="space-y-4">
           {canEdit && (
             <>
-              <div id="add-word-section">
+              <div id="add-word-section" className="relative z-20">
                 <AddWordForm
                   dictionaryId={dictionary.id}
                   dictionaryLanguage={dictionary.language}
@@ -276,7 +276,7 @@ export default function DictionaryDetailClient({
                   wordCount={dictionary.words.length}
                 />
               </div>
-              <div id="magic-words-section">
+              <div id="magic-words-section" className="relative z-10">
                 <MagicWords
                   dictionaryId={dictionary.id}
                   title={dictionary.title}

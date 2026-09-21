@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { Plus } from "lucide-react";
+import { Plus, ArrowLeftRight } from "lucide-react";
 import { z } from "zod";
 import { useLocale, useTranslations } from "next-intl";
 import AutoSuggest from "./AutoSuggest";
@@ -37,11 +37,32 @@ export default function AddWordForm({
   const t = useTranslations("dictionary");
   const [title, setTitle] = useState("");
   const [translation, setTranslation] = useState("");
+  const [sourceLang, setSourceLang] = useState(dictionaryLanguage || "en");
   const [targetLang, setTargetLang] = useState(locale);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const titleRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (dictionaryLanguage) {
+      setSourceLang(dictionaryLanguage);
+    }
+  }, [dictionaryLanguage]);
+
+  const handleSwapLanguages = () => {
+    setSourceLang(targetLang);
+    setTargetLang(sourceLang);
+
+    if (title && translation) {
+      setTitle(translation);
+      setTranslation(title);
+    } else if (!title && translation) {
+      setTitle(translation);
+      setTranslation("");
+    }
+    setErrors({});
+  };
 
   const createWordMutation = useMutation({
     mutationFn: createWord,
@@ -88,30 +109,76 @@ export default function AddWordForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--surface)] p-4 sm:flex-row sm:items-end"
+      className="relative z-10 flex flex-col gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--surface)] p-4 sm:flex-row sm:items-end"
     >
-      <div className="flex-1 space-y-1">
+      <div className="relative z-20 flex-1 space-y-1">
         <label className="text-sm font-medium text-[var(--fg)]/60">
           {t("word")}
         </label>
         <AutoSuggest
-          language={dictionaryLanguage}
+          language={sourceLang}
           value={title}
           onChange={setTitle}
           placeholder={t("word_placeholder")}
           className={errors.title ? "border-accent-400" : ""}
+          rightElement={
+            <Dropdown
+              key={sourceLang}
+              trigger={
+                <button
+                  type="button"
+                  className="flex h-7 w-9 items-center justify-center rounded-md hover:bg-[var(--surface)] transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                  title="Change word language"
+                >
+                  <span
+                    className={`text-lg rounded-sm overflow-hidden ${
+                      SUPPORTED_LANGUAGES.find((l) => l.code === sourceLang)
+                        ?.flagClass || "fi fi-gb"
+                    }`}
+                  ></span>
+                </button>
+              }
+            >
+              <div className="py-1">
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <DropdownItem
+                    key={lang.code}
+                    onClick={() => setSourceLang(lang.code)}
+                    className="gap-3"
+                    type="button"
+                  >
+                    <span
+                      className={`text-xl rounded-sm overflow-hidden ${lang.flagClass}`}
+                    ></span>
+                    <span className="text-base uppercase">{lang.code}</span>
+                  </DropdownItem>
+                ))}
+              </div>
+            </Dropdown>
+          }
         />
         {errors.title && (
           <p className="text-sm text-accent-500">{errors.title}</p>
         )}
       </div>
 
-      <div className="flex-1 space-y-1">
+      <div className="flex items-center justify-center self-center sm:self-end">
+        <button
+          type="button"
+          onClick={handleSwapLanguages}
+          title={t("switch_languages")}
+          className="group flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-xl border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)]/60 transition-all hover:bg-[var(--surface)] hover:text-primary-500 hover:border-primary-500/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer"
+        >
+          <ArrowLeftRight className="h-5 w-5 transition-transform duration-300 group-hover:rotate-180 rotate-90 sm:rotate-0" />
+        </button>
+      </div>
+
+      <div className="relative z-10 flex-1 space-y-1">
         <label className="text-sm font-medium text-[var(--fg)]/60">
           {t("translation")}
         </label>
         <AutoSuggest
-          language={dictionaryLanguage}
+          language={sourceLang}
           targetLang={targetLang}
           sourceWord={title}
           apiEndpoint="/api/words/translate-suggest"
