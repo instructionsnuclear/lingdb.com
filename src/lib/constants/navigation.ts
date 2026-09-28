@@ -4,6 +4,7 @@ import {
   Library,
   Trophy,
   FileText,
+  Gamepad2,
   Puzzle,
   Settings,
   Users,
@@ -47,11 +48,10 @@ export const MAIN_NAV_LINKS = [
     authRequired: false,
   },
   {
-    href: "/wordle",
-    labelKey: "wordle",
-    icon: Puzzle,
+    href: "/games",
+    labelKey: "games",
+    icon: Gamepad2,
     authRequired: false,
-    variant: "special",
   },
 ];
 

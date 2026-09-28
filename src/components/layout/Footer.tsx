@@ -69,7 +69,7 @@ export default function Footer({ locale = "en" }: { locale?: string }) {
                 team@lingdb.com
               </a>
               <a
-                href="https://instagram.com/lingdbcom"
+                href="https://instagram.com/lingdb_ingilizce"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-md text-[var(--fg)]/60 transition-colors hover:text-primary-500"

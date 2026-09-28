@@ -60,15 +60,15 @@ export default function Header({ locale = "en" }: { locale?: string }) {
                             ? "tiers-nav-link"
                             : link.href.includes("playground")
                               ? "playground-nav-link"
-                              : undefined
+                              : link.href.includes("games")
+                                ? "games-nav-link"
+                                : undefined
                     }
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-lg font-medium transition-colors",
-                      link.variant === "special"
-                        ? "rounded-none bg-yellow-400 font-extrabold text-black hover:bg-yellow-300"
-                        : isActive(link.href.split("/").pop()!)
-                          ? "rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
-                          : "rounded-lg text-[var(--fg)]/60 hover:bg-[var(--surface)] hover:text-[var(--fg)]",
+                      isActive(link.href.split("/").pop()!)
+                        ? "rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+                        : "rounded-lg text-[var(--fg)]/60 hover:bg-[var(--surface)] hover:text-[var(--fg)]",
                     )}
                   >
                     <link.icon className="h-4 w-4" />

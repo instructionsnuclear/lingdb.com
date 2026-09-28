@@ -132,11 +132,9 @@ export default function MobileNav({
               onClick={closeMenu}
               className={cn(
                 "flex items-center gap-4 p-4 text-xl font-medium transition-all active:scale-[0.98]",
-                link.href.includes("/wordle")
-                  ? "rounded-none bg-yellow-400 font-extrabold text-black hover:bg-yellow-300"
-                  : isActive(link.href.split("/").pop()!)
-                    ? "rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/20"
-                    : "rounded-2xl bg-[var(--surface)] text-[var(--fg)] hover:bg-[var(--surface)]/80",
+                isActive(link.href.split("/").pop()!)
+                  ? "rounded-2xl bg-primary-500 text-white shadow-lg shadow-primary-500/20"
+                  : "rounded-2xl bg-[var(--surface)] text-[var(--fg)] hover:bg-[var(--surface)]/80",
               )}
             >
               <link.icon className="h-6 w-6" />

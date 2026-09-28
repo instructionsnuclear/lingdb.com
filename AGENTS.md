@@ -105,7 +105,9 @@ Located in: `src/lib/db/schema.ts`
 - `/[locale]/dictionary/[id]`: Dictionary Detail / Word Management
 - `/[locale]/dictionary/[id]/flashcards`: Spaced Repetition Study
 - `/[locale]/dictionary/[id]/quiz`: Interactive Testing
-- `/[locale]/wordle`: Daily Word Game
+- `/[locale]/wordle`: Daily Word Game (Yordle)
+- `/[locale]/games`: Games Arcade Hub (Yordle, Yaboo)
+- `/[locale]/games/yaboo`: Yaboo (Fake Taboo) Teaser Page
 - `/[locale]/blogs`: Blog Listing
 - `/[locale]/admin/*`: Administrative Dashboards
 
