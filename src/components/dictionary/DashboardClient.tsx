@@ -31,15 +31,23 @@ export default function DashboardClient({
   const [currentSavedPacks, setCurrentSavedPacks] = useState<EnrichedDictionaryList[]>(savedPacks);
   const debouncedSearch = useDebounce(search);
 
+  const sortedDictionaries = useMemo(() => {
+    return [...dictionaries].sort((a, b) => {
+      const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [dictionaries]);
+
   const filtered = useMemo(() => {
-    if (!debouncedSearch) return dictionaries;
+    if (!debouncedSearch) return sortedDictionaries;
     const q = debouncedSearch.toLowerCase();
-    return dictionaries.filter(
+    return sortedDictionaries.filter(
       (d) =>
         d.title.toLowerCase().includes(q) ||
         d.description?.toLowerCase().includes(q)
     );
-  }, [dictionaries, debouncedSearch]);
+  }, [sortedDictionaries, debouncedSearch]);
 
   return (
     <>

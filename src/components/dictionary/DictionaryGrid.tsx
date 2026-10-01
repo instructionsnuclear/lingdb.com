@@ -5,7 +5,7 @@ import EmptyState from '@/components/common/EmptyState';
 import type { Dictionary } from '@/lib/db/schema';
 
 interface DictionaryGridProps {
-  dictionaries: (Dictionary & { wordCount?: number })[];
+  dictionaries: (Dictionary & { wordCount?: number; isShared?: boolean })[];
   onCreateClick: () => void;
   createButtonId?: string;
 }
@@ -28,7 +28,7 @@ export default function DictionaryGrid({
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="flex flex-col gap-3.5 sm:gap-4">
       {dictionaries.map((dict) => (
         <DictionaryCard key={dict.id} dictionary={dict} />
       ))}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { db } from '@/lib/db/client';
 import { dictionaries, words, users } from '@/lib/db/schema';
-import { eq, sql, ilike, and } from 'drizzle-orm';
+import { eq, sql, ilike, and, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { generateUniqueSlug } from '@/lib/utils/slugify';
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
         : baseCondition
     )
     .groupBy(dictionaries.id)
-    .orderBy(dictionaries.updatedAt);
+    .orderBy(desc(dictionaries.updatedAt));
 
   return NextResponse.json({ dictionaries: results });
 }

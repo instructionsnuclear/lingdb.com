@@ -81,7 +81,7 @@ export default async function DashboardPage({
       ),
     )
     .groupBy(dictionaries.id, dictionaries.userId)
-    .orderBy(dictionaries.updatedAt);
+    .orderBy(desc(dictionaries.updatedAt));
 
   // Ensure unique dictionary instances based on DB groupBy
   const userDictionaries = rawDictionaries;
@@ -122,7 +122,7 @@ export default async function DashboardPage({
   });
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <OnboardingTour
         hasCompletedTour={dbUser.hasCompletedTour}
         userId={dbUser.id}

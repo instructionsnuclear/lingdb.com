@@ -24,7 +24,16 @@ export default function Header({ locale = "en" }: { locale?: string }) {
   const t = useTranslations("common");
   const tNav = useTranslations("nav");
 
-  const isActive = (path: string) => pathname.includes(path);
+  const isActive = (path: string) => {
+    if (path === "tools") {
+      return (
+        pathname.includes("/tools") ||
+        pathname.includes("/playground") ||
+        pathname.includes("/dialogue-trees")
+      );
+    }
+    return pathname.includes(path);
+  };
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--border-color)] bg-[var(--bg)]/80 backdrop-blur-xl">
@@ -58,11 +67,15 @@ export default function Header({ locale = "en" }: { locale?: string }) {
                           ? "library-nav-link"
                           : link.href.includes("tiers")
                             ? "tiers-nav-link"
-                            : link.href.includes("playground")
-                              ? "playground-nav-link"
-                              : link.href.includes("games")
-                                ? "games-nav-link"
-                                : undefined
+                            : link.href.includes("tools")
+                              ? "tools-nav-link"
+                              : link.href.includes("playground")
+                                ? "playground-nav-link"
+                                : link.href.includes("dialogue-tree")
+                                  ? "dialogue-trees-nav-link"
+                                  : link.href.includes("games")
+                                    ? "games-nav-link"
+                                    : undefined
                     }
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 text-lg font-medium transition-colors",

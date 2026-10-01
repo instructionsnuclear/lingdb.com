@@ -5,7 +5,7 @@ Welcome to the **Lingdb** codebase. This guide is optimized for LLM agents to un
 ## 📌 Project Overview
 Lingdb is a premium, full-stack language-learning platform inspired by Quizlet.
 - **Core Loop**: Users create multilingual dictionaries, manage word lists with drag-and-drop, and study via flashcards/quizzes.
-- **Key Features**: AI-powered word suggestions, example phrase generation, collaborative editing, and Gamified Wordle.
+- **Key Features**: AI-powered word suggestions, example phrase generation, collaborative editing, Gamified Wordle, and Interactive Dialogue Trees.
 - **Audience**: Language learners wanting a high-performance, aesthetically pleasing study tool.
 
 ---
@@ -78,12 +78,35 @@ Animations are a first-class citizen in Lingdb.
 
 ---
 
+## 🌳 Dialogue Trees
+Interactive branching conversation builder helping learners discover dialogue continuations and expand vocabulary.
+
+### Architecture & Components
+- **Page Route**: `/[locale]/dialogue-trees`
+- **Canvas (`DialogueTreeCanvas.tsx`)**: Infinite pan & zoom canvas (centered focal mouse-wheel zoom, spacebar/middle-click drag, dot grid background, auto-layout).
+- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
+- **Connections (`DialogueTreeConnections.tsx`)**: SVG cubic bezier curves with directional arrow markers and branch highlighting.
+- **Link Handles**: Hoverable/clickable right-side arrow handle with `+` icon on every card to branch out custom responses infinitely.
+- **AI Continuation Engine (`/api/dialogue-trees/suggest`)**:
+  - Traces the exact linear branch via `getConversationLine()` from root to active node (avoiding neighbor branch cross-contamination).
+  - Prompts OpenRouter to suggest 3 distinct, natural continuations.
+  - Credit consumption: Auto-generated continuations (on adding a phrase or editing text) do NOT consume AI credits. Only manual refresh via the refresh icon button consumes 1 AI credit.
+  - Rate limiting: Strictly rate-limited to 5 AI generations per minute and 30 generations per hour via `checkRateLimit` and `activityLogs`.
+  - Multi-box support: Multiple suggestion boxes can remain open simultaneously with independent close (`X`) buttons. Re-opening a box preserves previous suggestions without redundant AI calls.
+- **Word Highlighting & Direct Word Save (`DialoguePhraseWords.tsx`)**:
+  - Words existing in any user dictionary appear in **bold orange** (`text-amber-500 font-bold`).
+  - Unsaved words are directly clickable. Clicking opens a React Portalled (`createPortal`) dictionary selector right beneath the word (immune to canvas CSS transforms).
+  - Saving generates an AI translation in the phrase's context and adds the word to the target dictionary via `/api/dialogue-trees/save-word`.
+
+---
+
 ## 💾 Database Schemas (Drizzle)
 Located in: `src/lib/db/schema.ts`
 
 - **`users`**: Auth via Supabase, tracks `aiCredits`, `streakCount`, `tier`.
 - **`dictionaries`**: Main entity. Has `language`, `isPublic`, and `activeMagicWords` (JSONB).
 - **`words`**: Belongs to dictionaries. Has `order` for drag-and-drop.
+- **`dialogue_trees`**: Conversational tree entity with JSONB `nodes`, `pan`, and `zoom`.
 - **`flashcard_progress`**: Leitner system tracking (`leitner_box` 1-5).
 - **`blogs`**: Rich text support via JSONB `content`.
 
@@ -101,6 +124,8 @@ Located in: `src/lib/db/schema.ts`
 
 ## 🛤️ Project Routes
 - `/`: Landing Page
+- `/[locale]/dialogue-trees`: Interactive Dialogue Tree Canvas & Branching Builder
+- `/[locale]/playground`: Infinite Playground Canvas (Vocab Combination)
 - `/[locale]/dictionary`: User Dashboard / Dictionary Listing
 - `/[locale]/dictionary/[id]`: Dictionary Detail / Word Management
 - `/[locale]/dictionary/[id]/flashcards`: Spaced Repetition Study

@@ -59,4 +59,8 @@ export const qk = {
     dictionaries: (ids: string[]) =>
       ["playground", "dictionaries", ids.slice().sort().join(",")] as const,
   },
+  dialogueTrees: {
+    lists: ["dialogueTrees", "lists"] as const,
+    detail: (id: string) => ["dialogueTrees", "detail", id] as const,
+  },
 } as const;

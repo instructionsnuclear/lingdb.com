@@ -9,6 +9,7 @@ import {
   pgEnum,
   unique,
   index,
+  real,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -459,11 +460,49 @@ export const dictionaryLists = pgTable(
   ],
 );
 
+// ─── Dialogue Trees ────────────────────────────────────────
+
+export interface DialogueTreeNode {
+  id: string;
+  parentId: string | null;
+  text: string;
+  translation?: string;
+  childrenIds: string[];
+  x: number;
+  y: number;
+  aiSuggestions?: string[];
+}
+
+export const dialogueTrees = pgTable(
+  "dialogue_trees",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    language: text("language").notNull().default("en"),
+    nodes: jsonb("nodes").$type<DialogueTreeNode[]>().notNull().default([]),
+    pan: jsonb("pan").$type<{ x: number; y: number }>().default({ x: 0, y: 0 }),
+    zoom: real("zoom").default(1),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("dialogue_trees_user_id_idx").on(table.userId),
+  ],
+);
+
 // ─── Relations ──────────────────────────────────────────────
 
 export const usersRelations = relations(users, ({ many }) => ({
   dictionaries: many(dictionaries),
   dictionaryLists: many(dictionaryLists),
+  dialogueTrees: many(dialogueTrees),
   dictionaryEditors: many(dictionaryEditors),
   forks: many(forks),
   activityLogs: many(activityLogs),
@@ -615,6 +654,13 @@ export const dictionaryListsRelations = relations(dictionaryLists, ({ one }) => 
   }),
 }));
 
+export const dialogueTreesRelations = relations(dialogueTrees, ({ one }) => ({
+  user: one(users, {
+    fields: [dialogueTrees.userId],
+    references: [users.id],
+  }),
+}));
+
 // ─── Type Exports ───────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -642,3 +688,5 @@ export type BlogTranslation = typeof blogTranslations.$inferSelect;
 export type NewBlogTranslation = typeof blogTranslations.$inferInsert;
 export type DictionaryList = typeof dictionaryLists.$inferSelect;
 export type NewDictionaryList = typeof dictionaryLists.$inferInsert;
+export type DialogueTree = typeof dialogueTrees.$inferSelect;
+export type NewDialogueTree = typeof dialogueTrees.$inferInsert;

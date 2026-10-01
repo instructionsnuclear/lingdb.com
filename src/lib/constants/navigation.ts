@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Layers,
+  Languages,
   Library,
   Trophy,
   FileText,
@@ -14,6 +15,7 @@ import {
   MessageSquare,
   Ticket,
   BookOpen,
+  GitFork,
 } from "lucide-react";
 
 export const MAIN_NAV_LINKS = [
@@ -24,29 +26,29 @@ export const MAIN_NAV_LINKS = [
     authRequired: true,
   },
   {
-    href: "/playground",
-    labelKey: "playground",
-    icon: Layers,
+    href: "/tools",
+    labelKey: "tools",
+    icon: Languages,
     authRequired: false,
   },
-  {
-    href: "/library",
-    labelKey: "library",
-    icon: Library,
-    authRequired: false,
-  },
-  {
-    href: "/leaderboards",
-    labelKey: "leaderboards",
-    icon: Trophy,
-    authRequired: false,
-  },
-  {
-    href: "/blogs",
-    labelKey: "blogs",
-    icon: FileText,
-    authRequired: false,
-  },
+  // {
+  //   href: "/library",
+  //   labelKey: "library",
+  //   icon: Library,
+  //   authRequired: false,
+  // },
+  // {
+  //   href: "/leaderboards",
+  //   labelKey: "leaderboards",
+  //   icon: Trophy,
+  //   authRequired: false,
+  // },
+  // {
+  //   href: "/blogs",
+  //   labelKey: "blogs",
+  //   icon: FileText,
+  //   authRequired: false,
+  // },
   {
     href: "/games",
     labelKey: "games",
