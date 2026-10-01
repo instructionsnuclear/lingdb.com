@@ -43,6 +43,11 @@ interface PlaygroundClientProps {
   initialUserDictionaries: UserDictionarySummary[];
   initialSavedPacks: EnrichedDictionaryList[];
   initialPackId?: string;
+  initialQuickPlay?: {
+    title: string;
+    language: string;
+    dictionaryIds: string[];
+  };
   aiCredits: number;
 }
 
@@ -51,6 +56,7 @@ export default function PlaygroundClient({
   initialUserDictionaries,
   initialSavedPacks,
   initialPackId,
+  initialQuickPlay,
   aiCredits: initialAiCredits,
 }: PlaygroundClientProps) {
   const t = useTranslations("playground");
@@ -62,7 +68,7 @@ export default function PlaygroundClient({
     useState<EnrichedDictionaryList[]>(initialSavedPacks);
   const [currentCredits, setCurrentCredits] = useState<number>(initialAiCredits);
 
-  // Active pack selection (restores URL packId, last used pack from localStorage, or first saved pack)
+  // Active pack selection (restores URL packId or quick play if provided; otherwise starts null so selector modal/view opens first)
   const [activePack, setActivePack] = useState<{
     id?: string;
     title: string;
@@ -84,61 +90,37 @@ export default function PlaygroundClient({
         };
       }
     }
-    if (typeof window !== "undefined") {
-      try {
-        const lastId = localStorage.getItem("lingdb_last_active_pack_id");
-        if (lastId) {
-          const found = initialSavedPacks.find((p) => p.id === lastId);
-          if (found) {
-            return {
-              id: found.id,
-              title: found.title,
-              language: found.language,
-              dictionaryIds: found.dictionaryIds,
-              positions: found.positions,
-              savedPhrases: found.savedPhrases,
-            };
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
-    if (initialSavedPacks.length > 0) {
-      const first = initialSavedPacks[0];
+    if (initialQuickPlay && initialQuickPlay.dictionaryIds.length > 0) {
       return {
-        id: first.id,
-        title: first.title,
-        language: first.language,
-        dictionaryIds: first.dictionaryIds,
-        positions: first.positions,
-        savedPhrases: first.savedPhrases,
+        title: initialQuickPlay.title,
+        language: initialQuickPlay.language,
+        dictionaryIds: initialQuickPlay.dictionaryIds,
       };
     }
     return null;
   });
 
-  // Track last active pack in localStorage
+  // Clean up legacy localStorage key if present
   useEffect(() => {
-    if (activePack?.id && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       try {
-        localStorage.setItem("lingdb_last_active_pack_id", activePack.id);
+        localStorage.removeItem("lingdb_last_active_pack_id");
       } catch {
         // ignore
       }
     }
-  }, [activePack?.id]);
+  }, []);
 
-  // Disable page/body scroll on playground to allow infinite canvas camera
+  // Disable page/body scroll on playground only when activePack is loaded for infinite canvas camera
   useEffect(() => {
+    if (!activePack) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prevOverflow;
     };
-  }, []);
+  }, [activePack]);
 
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(!activePack);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState<boolean>(false);
 
   // Selected words across dictionaries
@@ -397,7 +379,6 @@ export default function PlaygroundClient({
     setSavedPacks((prev) => prev.filter((p) => p.id !== packId));
     if (activePack?.id === packId) {
       setActivePack(null);
-      setIsModalOpen(true);
     }
   };
 
@@ -425,26 +406,32 @@ export default function PlaygroundClient({
     );
   }
 
+  // If no active pack, render the pack selector directly as page content
+  if (!activePack) {
+    return (
+      <main
+        ref={rootRef}
+        className="min-h-[calc(100vh-4rem)] w-full py-8 sm:py-12 px-4 sm:px-6 lg:px-8 overflow-y-auto"
+      >
+        <DictionaryListSelectorModal
+          isOpen={true}
+          isInline={true}
+          savedPacks={savedPacks}
+          userDictionaries={initialUserDictionaries}
+          onSelectPack={(pack) => {
+            setActivePack(pack);
+            setSelectedWords([]);
+            setPhrases([]);
+          }}
+          onPackCreated={handlePackCreated}
+          onPackDeleted={handlePackDeleted}
+        />
+      </main>
+    );
+  }
+
   return (
     <div ref={rootRef} className="relative w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Pack Selection Modal */}
-      <DictionaryListSelectorModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          if (activePack) setIsModalOpen(false);
-        }}
-        savedPacks={savedPacks}
-        userDictionaries={initialUserDictionaries}
-        onSelectPack={(pack) => {
-          setActivePack(pack);
-          setSelectedWords([]);
-          setPhrases([]);
-          setIsModalOpen(false);
-        }}
-        onPackCreated={handlePackCreated}
-        onPackDeleted={handlePackDeleted}
-      />
-
       {/* Loading state while loading pack dictionary words */}
       {isLoadingDicts && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[var(--bg)]/70 backdrop-blur-sm">
@@ -456,71 +443,49 @@ export default function PlaygroundClient({
       )}
 
       {/* Active Playground Canvas */}
-      {activePack && (
-        <>
-          <PlaygroundCanvas
-            key={activePack.id || "default"}
-            packId={activePack.id}
-            packTitle={activePack.title}
-            language={activePack.language}
-            dictionaries={canvasDictionaries}
-            savedPositions={activePack.positions}
-            savedPhrases={activePack.savedPhrases || []}
-            isSidePanelOpen={isSidePanelOpen}
-            onToggleSidePanel={() => setIsSidePanelOpen((prev) => !prev)}
-            isSelectedWord={isSelectedWord}
-            onToggleWord={handleToggleWord}
-            onWordAdded={handleWordAdded}
-            onOpenPackSelector={() => setIsModalOpen(true)}
-            onPositionsUpdated={handlePositionsUpdated}
-          />
+      <PlaygroundCanvas
+        key={activePack.id || "default"}
+        packId={activePack.id}
+        packTitle={activePack.title}
+        language={activePack.language}
+        dictionaries={canvasDictionaries}
+        savedPositions={activePack.positions}
+        savedPhrases={activePack.savedPhrases || []}
+        isSidePanelOpen={isSidePanelOpen}
+        onToggleSidePanel={() => setIsSidePanelOpen((prev) => !prev)}
+        isSelectedWord={isSelectedWord}
+        onToggleWord={handleToggleWord}
+        onWordAdded={handleWordAdded}
+        onOpenPackSelector={() => setActivePack(null)}
+        onPositionsUpdated={handlePositionsUpdated}
+      />
 
-          {/* Bottom Dock with Selected Words & AI Phrase Generation */}
-          <PlaygroundBottomDock
-            selectedWords={selectedWords}
-            onRemoveWord={handleRemoveWord}
-            onClearAll={handleClearAll}
-            onGenerate={handleGeneratePhrases}
-            isGenerating={isGenerating}
-            phrases={phrases}
-            dictionaries={canvasDictionaries}
-            aiCredits={currentCredits}
-            onWordAdded={handleWordAdded}
-            savedPhrases={activePack.savedPhrases || []}
-            onToggleSavePhrase={handleToggleSavePhrase}
-            language={activePack.language}
-          />
+      {/* Bottom Dock with Selected Words & AI Phrase Generation */}
+      <PlaygroundBottomDock
+        selectedWords={selectedWords}
+        onRemoveWord={handleRemoveWord}
+        onClearAll={handleClearAll}
+        onGenerate={handleGeneratePhrases}
+        isGenerating={isGenerating}
+        phrases={phrases}
+        dictionaries={canvasDictionaries}
+        aiCredits={currentCredits}
+        onWordAdded={handleWordAdded}
+        savedPhrases={activePack.savedPhrases || []}
+        onToggleSavePhrase={handleToggleSavePhrase}
+        language={activePack.language}
+      />
 
-          {/* Saved Phrases Collapsible Side Panel (appears above Chosen Words section) */}
-          <SavedPhrasesSidePanel
-            isOpen={isSidePanelOpen}
-            onClose={() => setIsSidePanelOpen(false)}
-            savedPhrases={activePack.savedPhrases || []}
-            onDeletePhrase={handleDeleteSavedPhrase}
-            onClearAllPhrases={handleClearAllSavedPhrases}
-            language={activePack.language}
-            packTitle={activePack.title}
-          />
-        </>
-      )}
-
-      {/* If no active pack and modal is closed */}
-      {!activePack && !isModalOpen && (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-          <Layers className="h-16 w-16 text-[var(--fg)]/30 mb-4" />
-          <h2 className="text-xl font-bold mb-2">No Dictionary List Selected</h2>
-          <p className="text-sm text-[var(--fg)]/50 max-w-sm mb-5">
-            Select or create a pack of dictionaries to enter the playground.
-          </p>
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl bg-primary-500 text-white font-bold hover:bg-primary-600 transition-all shadow-md shadow-primary-500/20"
-          >
-            {t("select_or_create_pack")}
-          </button>
-        </div>
-      )}
+      {/* Saved Phrases Collapsible Side Panel (appears above Chosen Words section) */}
+      <SavedPhrasesSidePanel
+        isOpen={isSidePanelOpen}
+        onClose={() => setIsSidePanelOpen(false)}
+        savedPhrases={activePack.savedPhrases || []}
+        onDeletePhrase={handleDeleteSavedPhrase}
+        onClearAllPhrases={handleClearAllSavedPhrases}
+        language={activePack.language}
+        packTitle={activePack.title}
+      />
     </div>
   );
 }

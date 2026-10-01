@@ -3,25 +3,32 @@
 import { useState, useMemo } from 'react';
 import { Plus, Layers } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import SearchBar from '@/components/common/SearchBar';
 import DictionaryGrid from '@/components/dictionary/DictionaryGrid';
 import CreateDictionaryModal from '@/components/dictionary/CreateDictionaryModal';
+import DictionaryListSelectorModal from '@/components/playground/DictionaryListSelectorModal';
 import Button from '@/components/ui/Button';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import type { Dictionary } from '@/lib/db/schema';
+import type { EnrichedDictionaryList } from '@/lib/api/playground.api';
 
 interface DashboardClientProps {
   dictionaries: (Dictionary & { wordCount: number })[];
+  savedPacks?: EnrichedDictionaryList[];
 }
 
 export default function DashboardClient({
   dictionaries,
+  savedPacks = [],
 }: DashboardClientProps) {
   const t = useTranslations('dashboard');
   const locale = useLocale();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isMixModalOpen, setIsMixModalOpen] = useState(false);
+  const [currentSavedPacks, setCurrentSavedPacks] = useState<EnrichedDictionaryList[]>(savedPacks);
   const debouncedSearch = useDebounce(search);
 
   const filtered = useMemo(() => {
@@ -45,15 +52,16 @@ export default function DashboardClient({
         />
         <div className="flex flex-wrap items-center gap-3">
           {dictionaries.length >= 2 && (
-            <Link
+            <button
+              type="button"
               id="mashup-dictionaries-btn"
-              href={`/${locale}/playground`}
-              className="inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.97] bg-white/80 dark:bg-white/5 border border-primary-500/30 hover:border-primary-500 hover:bg-primary-500/10 text-primary-600 dark:text-primary-300 px-4 py-2.5 text-base sm:text-lg rounded-xl gap-2 shadow-xs hover:shadow-md backdrop-blur-md"
-              title="Mash-Up Dictionaries in Playground"
+              onClick={() => setIsMixModalOpen(true)}
+              className="inline-flex items-center justify-center font-semibold transition-all duration-200 active:scale-[0.97] bg-white/80 dark:bg-white/5 border border-primary-500/30 hover:border-primary-500 hover:bg-primary-500/10 text-primary-600 dark:text-primary-300 px-4 py-2.5 text-base sm:text-lg rounded-xl gap-2 shadow-xs hover:shadow-md backdrop-blur-md cursor-pointer"
+              title={t('mashup_dictionaries')}
             >
               <Layers className="h-4 w-4 text-primary-500" />
               {t('mashup_dictionaries')}
-            </Link>
+            </button>
           )}
 
           <Button id="create-dictionary-btn" onClick={() => setIsCreateOpen(true)}>
@@ -80,6 +88,35 @@ export default function DashboardClient({
       <CreateDictionaryModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
+      />
+
+      <DictionaryListSelectorModal
+        isOpen={isMixModalOpen}
+        isInline={false}
+        onClose={() => setIsMixModalOpen(false)}
+        savedPacks={currentSavedPacks}
+        userDictionaries={dictionaries}
+        onSelectPack={(pack) => {
+          setIsMixModalOpen(false);
+          if (pack.id) {
+            router.push(`/${locale}/playground?packId=${pack.id}`);
+          } else {
+            const q = new URLSearchParams({
+              dictIds: pack.dictionaryIds.join(','),
+              lang: pack.language,
+              title: pack.title,
+            });
+            router.push(`/${locale}/playground?${q.toString()}`);
+          }
+        }}
+        onPackCreated={(newPack) => {
+          setCurrentSavedPacks((prev) => [newPack, ...prev]);
+          setIsMixModalOpen(false);
+          router.push(`/${locale}/playground?packId=${newPack.id}`);
+        }}
+        onPackDeleted={(packId) => {
+          setCurrentSavedPacks((prev) => prev.filter((p) => p.id !== packId));
+        }}
       />
     </>
   );

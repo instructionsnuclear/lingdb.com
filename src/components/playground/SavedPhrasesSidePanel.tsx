@@ -98,13 +98,13 @@ export default function SavedPhrasesSidePanel({
         aria-label="Saved Phrases"
         className={cn(
           "fixed top-16 right-0 z-50 h-[calc(100vh-4rem)] w-84 sm:w-96 flex flex-col",
-          "border-l border-[var(--border-color)] bg-white/95 dark:bg-[#0c0a2a]/95 backdrop-blur-2xl shadow-2xl",
+          "border-l border-[var(--border-color)] bg-[var(--surface)]/95 backdrop-blur-2xl shadow-2xl dark:shadow-[0_8px_40px_rgba(0,0,0,0.6)]",
           "transform transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "translate-x-full pointer-events-none",
         )}
       >
         {/* Panel Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-color)] bg-[var(--surface)]/40 shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-color)] bg-[var(--bg)]/40 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
               <Bookmark className="h-4 w-4 fill-current" />
@@ -143,7 +143,7 @@ export default function SavedPhrasesSidePanel({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 rounded-xl hover:bg-[var(--surface)] text-[var(--fg)]/60 hover:text-[var(--fg)] transition-colors active:scale-95"
+              className="p-1.5 rounded-xl hover:bg-[var(--bg)] text-[var(--fg)]/60 hover:text-[var(--fg)] transition-colors active:scale-95"
               title="Close panel"
               aria-label="Close panel"
             >
@@ -162,7 +162,7 @@ export default function SavedPhrasesSidePanel({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search saved phrases..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-[var(--surface)]/70 border border-[var(--border-color)] text-[var(--fg)] placeholder:text-[var(--fg)]/40 focus:outline-hidden focus:border-primary-500 transition-colors"
+                className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-[var(--bg)]/70 border border-[var(--border-color)] text-[var(--fg)] placeholder:text-[var(--fg)]/40 focus:outline-hidden focus:border-primary-500 transition-colors"
               />
               {searchQuery && (
                 <button
@@ -199,7 +199,7 @@ export default function SavedPhrasesSidePanel({
             filteredPhrases.map((phraseItem) => (
               <div
                 key={phraseItem.id}
-                className="group relative p-3.5 rounded-2xl border border-[var(--border-color)] bg-[var(--surface)]/50 hover:bg-[var(--surface)]/80 hover:border-primary-500/40 transition-all flex flex-col justify-between gap-2 shadow-xs"
+                className="group relative p-3.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg)]/50 hover:bg-[var(--bg)]/80 hover:border-primary-500/40 transition-all flex flex-col justify-between gap-2 shadow-xs"
               >
                 <div>
                   {phraseItem.context && (

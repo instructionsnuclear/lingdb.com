@@ -112,22 +112,22 @@ export default function DraggableDictionaryTable({
       style={style}
       onMouseDown={onBringToFront}
       className={cn(
-        "w-80 sm:w-96 rounded-xl border bg-white/90 dark:bg-[#121132]/90 backdrop-blur-xl shadow-xl transition-shadow flex flex-col select-none overflow-hidden",
+        "w-80 sm:w-96 rounded-2xl border bg-[var(--surface)]/95 backdrop-blur-xl shadow-xl transition-shadow flex flex-col select-none overflow-hidden dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
         isDragging
           ? "shadow-2xl ring-2 ring-primary-500 cursor-grabbing border-primary-500/50"
-          : "border-[var(--border-color)] hover:shadow-2xl hover:border-primary-500/30",
+          : "border-[var(--border-color)] hover:shadow-2xl hover:border-primary-500/40",
       )}
     >
       {/* Draggable Table Header */}
       <div
         {...listeners}
         {...attributes}
-        className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)] bg-primary-500/5 dark:bg-primary-500/10 rounded-t-xl cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)] bg-primary-500/5 dark:bg-primary-500/10 rounded-t-2xl cursor-grab active:cursor-grabbing"
       >
         <div className="flex items-center gap-2 min-w-0">
           <GripVertical className="h-4 w-4 text-[var(--fg)]/40 shrink-0" />
           <h3
-            className="font-bold text-sm sm:text-base text-[var(--fg)] truncate"
+            className="font-bold text-sm sm:text-base text-[var(--fg)] truncate font-heading"
             title={dictionary.title}
           >
             {dictionary.title}
@@ -138,7 +138,7 @@ export default function DraggableDictionaryTable({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs text-[var(--fg)]/50 font-medium mr-1">
+          <span className="text-xs text-[var(--fg)]/60 font-medium mr-1">
             {dictionary.words.length}
           </span>
           <button
@@ -166,7 +166,7 @@ export default function DraggableDictionaryTable({
         <form
           onSubmit={handleAddWordSubmit}
           onMouseDown={(e) => e.stopPropagation()}
-          className="p-3 border-b border-[var(--border-color)] bg-[var(--surface)]/60 animate-in slide-in-from-top-2 duration-150"
+          className="p-3 border-b border-[var(--border-color)] bg-[var(--surface)]/70 animate-in slide-in-from-top-2 duration-150"
         >
           <div className="grid grid-cols-2 gap-2 mb-2">
             <input
@@ -175,21 +175,21 @@ export default function DraggableDictionaryTable({
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Word..."
               autoFocus
-              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] placeholder:text-[var(--fg)]/40 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
             <input
               type="text"
               value={newTranslation}
               onChange={(e) => setNewTranslation(e.target.value)}
               placeholder="Translation..."
-              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] placeholder:text-[var(--fg)]/40 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
           <div className="flex items-center justify-end gap-1.5">
             <button
               type="button"
               onClick={() => setShowAddForm(false)}
-              className="px-2.5 py-1 text-xs rounded-md text-[var(--fg)]/60 hover:text-[var(--fg)] transition-colors"
+              className="px-2.5 py-1 text-xs rounded-md text-[var(--fg)]/60 hover:text-[var(--fg)] hover:bg-[var(--surface)] transition-colors"
             >
               Cancel
             </button>
@@ -210,7 +210,7 @@ export default function DraggableDictionaryTable({
       )}
 
       {/* Table Content */}
-      <div className="max-h-64 sm:max-h-72 overflow-y-auto divide-y divide-[var(--border-color)]/50">
+      <div className="max-h-64 sm:max-h-72 overflow-y-auto divide-y divide-[var(--border-color)]/30">
         {dictionary.words.length === 0 ? (
           <div className="p-8 text-center text-xs text-[var(--fg)]/40">
             <BookOpen className="h-6 w-6 mx-auto mb-2 opacity-40" />
@@ -219,48 +219,50 @@ export default function DraggableDictionaryTable({
         ) : (
           <div className="text-xs">
             {/* Table Column Headers */}
-            <div className="sticky top-0 grid grid-cols-2 px-3 py-2 bg-[var(--surface)] font-semibold text-[var(--fg)]/60 border-b border-[var(--border-color)]/50 z-10">
+            <div className="sticky top-0 grid grid-cols-2 px-3.5 py-2 bg-[var(--surface)] font-bold text-[var(--fg)]/60 border-b border-[var(--border-color)] z-10 text-[11px] uppercase tracking-wider">
               <span>Word</span>
               <span>Translation</span>
             </div>
 
             {/* Table Rows */}
-            {dictionary.words.map((word) => {
-              const selected = isSelectedWord(word.id);
-              return (
-                <div
-                  key={word.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleWord(word, dictionary);
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className={cn(
-                    "grid grid-cols-2 px-3 py-2.5 cursor-pointer transition-all items-center",
-                    selected
-                      ? "bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold ring-1 ring-inset ring-primary-500/40"
-                      : "hover:bg-primary-500/5 text-[var(--fg)]/80 hover:text-[var(--fg)]",
-                  )}
-                >
-                  <div className="flex items-center gap-2 truncate pr-2">
-                    <div
-                      className={cn(
-                        "h-3.5 w-3.5 rounded flex items-center justify-center border shrink-0 transition-colors",
-                        selected
-                          ? "border-primary-500 bg-primary-500 text-white"
-                          : "border-[var(--border-color)] bg-[var(--bg)]",
-                      )}
-                    >
-                      {selected && <Check className="h-2.5 w-2.5" />}
+            <div className="divide-y divide-[var(--border-color)]/30">
+              {dictionary.words.map((word) => {
+                const selected = isSelectedWord(word.id);
+                return (
+                  <div
+                    key={word.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleWord(word, dictionary);
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className={cn(
+                      "grid grid-cols-2 px-3.5 py-2.5 cursor-pointer transition-colors items-center",
+                      selected
+                        ? "bg-primary-500/15 text-primary-700 dark:text-primary-300 font-semibold ring-1 ring-inset ring-primary-500/30"
+                        : "hover:bg-primary-500/5 text-[var(--fg)]/85 hover:text-[var(--fg)]",
+                    )}
+                  >
+                    <div className="flex items-center gap-2 truncate pr-2">
+                      <div
+                        className={cn(
+                          "h-3.5 w-3.5 rounded flex items-center justify-center border shrink-0 transition-colors",
+                          selected
+                            ? "border-primary-500 bg-primary-500 text-white"
+                            : "border-[var(--border-color)] bg-[var(--bg)]",
+                        )}
+                      >
+                        {selected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                      </div>
+                      <span className="truncate font-medium text-[var(--fg)]">{word.title}</span>
                     </div>
-                    <span className="truncate">{word.title}</span>
+                    <div className="truncate text-[var(--fg)]/70">
+                      {word.translation}
+                    </div>
                   </div>
-                  <div className="truncate text-[var(--fg)]/60">
-                    {word.translation}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

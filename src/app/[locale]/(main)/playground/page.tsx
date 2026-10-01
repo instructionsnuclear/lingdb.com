@@ -24,10 +24,15 @@ export default async function PlaygroundPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ packId?: string }>;
+  searchParams: Promise<{
+    packId?: string;
+    dictIds?: string;
+    lang?: string;
+    title?: string;
+  }>;
 }) {
   const { locale } = await params;
-  const { packId } = await searchParams;
+  const { packId, dictIds, lang, title } = await searchParams;
 
   const supabase = await createClient();
   const {
@@ -101,12 +106,22 @@ export default async function PlaygroundPage({
     };
   });
 
+  const initialQuickPlay =
+    dictIds && lang
+      ? {
+          title: title || "Quick Play",
+          language: lang,
+          dictionaryIds: dictIds.split(",").filter(Boolean),
+        }
+      : undefined;
+
   return (
     <PlaygroundClient
       locale={locale}
       initialUserDictionaries={userDictionaries}
       initialSavedPacks={enrichedPacks}
       initialPackId={packId}
+      initialQuickPlay={initialQuickPlay}
       aiCredits={dbUser.aiCredits}
     />
   );

@@ -612,7 +612,9 @@
     "reset_layout": "Réinitialiser la disposition",
     "need_dictionaries_title": "Aucun dictionnaire trouvé",
     "need_dictionaries_desc": "Vous avez besoin d'au moins un dictionnaire pour utiliser le Playground.",
-    "create_dictionary_btn": "Créer un dictionnaire"
+    "create_dictionary_btn": "Créer un dictionnaire",
+    "no_pack_selected": "Aucun pack de dictionnaires sélectionné",
+    "no_pack_selected_desc": "Sélectionnez ou créez un pack de dictionnaires pour accéder au playground."
   },
   "games": {
     "page_title": "Arcade de Jeux | Lingdb",

@@ -592,7 +592,9 @@
     "reset_layout": "Yerleşimi Sıfırla",
     "need_dictionaries_title": "Sözlük Bulunamadı",
     "need_dictionaries_desc": "Playground'ı kullanmak için en az bir sözlüğe ihtiyacınız var.",
-    "create_dictionary_btn": "Sözlük Oluştur"
+    "create_dictionary_btn": "Sözlük Oluştur",
+    "no_pack_selected": "Hiçbir Sözlük Paketi Seçilmedi",
+    "no_pack_selected_desc": "Playground'a girmek için bir sözlük paketi seçin veya oluşturun."
   },
   "games": {
     "page_title": "Oyunlar | Lingdb",

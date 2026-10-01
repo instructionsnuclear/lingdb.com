@@ -612,7 +612,9 @@
     "reset_layout": "Layout zurücksetzen",
     "need_dictionaries_title": "Keine Wörterbücher gefunden",
     "need_dictionaries_desc": "Du benötigst mindestens ein Wörterbuch, um den Playground zu nutzen.",
-    "create_dictionary_btn": "Wörterbuch erstellen"
+    "create_dictionary_btn": "Wörterbuch erstellen",
+    "no_pack_selected": "Kein Wörterbuch-Paket ausgewählt",
+    "no_pack_selected_desc": "Wählen Sie ein Wörterbuch-Paket aus oder erstellen Sie eines, um den Playground zu betreten."
   },
   "games": {
     "page_title": "Spiele-Arcade | Lingdb",

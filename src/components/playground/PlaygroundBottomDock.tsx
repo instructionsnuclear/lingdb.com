@@ -168,9 +168,9 @@ export default function PlaygroundBottomDock({
       aria-label="Playground Word Mashup & AI Phrases"
       className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[96%] max-w-5xl z-40"
     >
-      <div className="relative rounded-3xl border border-[var(--border-color)] bg-white/95 dark:bg-[#0c0a2a]/95 backdrop-blur-2xl shadow-2xl overflow-hidden transition-all duration-300">
+      <div className="relative rounded-3xl border border-[var(--border-color)] bg-[var(--surface)]/95 backdrop-blur-2xl shadow-2xl dark:shadow-[0_8px_40px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-300">
         {/* Top Dock Header / Bar */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-color)] bg-[var(--surface)]/40">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-color)] bg-[var(--bg)]/40">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -186,7 +186,7 @@ export default function PlaygroundBottomDock({
             </button>
 
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-[var(--fg)]">
+              <span className="font-bold text-sm text-[var(--fg)] font-heading">
                 {t("chosen_words")}
               </span>
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400">
@@ -239,7 +239,7 @@ export default function PlaygroundBottomDock({
           <div className="p-4 space-y-4 max-h-[50vh] overflow-y-auto">
             {/* Selected Words Tray */}
             {selectedWords.length === 0 ? (
-              <div className="p-3 text-center text-xs text-[var(--fg)]/40 bg-[var(--surface)]/20 rounded-2xl border border-dashed border-[var(--border-color)]">
+              <div className="p-3 text-center text-xs text-[var(--fg)]/50 bg-[var(--bg)]/40 rounded-2xl border border-dashed border-[var(--border-color)]">
                 {t("chosen_words_empty")}
               </div>
             ) : (
@@ -247,10 +247,10 @@ export default function PlaygroundBottomDock({
                 {selectedWords.map((item) => (
                   <div
                     key={item.wordId}
-                    className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-xl text-xs bg-primary-500/10 text-primary-900 dark:text-primary-100 border border-primary-500/20 shadow-sm transition-all"
+                    className="flex items-center gap-1.5 pl-3 pr-2 py-1.5 rounded-xl text-xs bg-primary-500/10 text-[var(--fg)] border border-primary-500/20 shadow-xs transition-all"
                   >
-                    <span className="font-bold">{item.title}</span>
-                    <span className="text-[var(--fg)]/50 italic">
+                    <span className="font-bold text-[var(--fg)]">{item.title}</span>
+                    <span className="text-[var(--fg)]/60 italic">
                       ({item.translation})
                     </span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary-500/15 text-primary-600 dark:text-primary-300 font-semibold ml-1">

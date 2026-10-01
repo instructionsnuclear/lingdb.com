@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db/client";
-import { dictionaries, words, users, dictionaryEditors } from "@/lib/db/schema";
-import { eq, sql, or, and } from "drizzle-orm";
+import { dictionaries, words, users, dictionaryEditors, dictionaryLists } from "@/lib/db/schema";
+import { eq, sql, or, and, desc, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/components/dictionary/DashboardClient";
 import OnboardingTour from "@/components/tutorial/OnboardingTour";
@@ -86,6 +86,41 @@ export default async function DashboardPage({
   // Ensure unique dictionary instances based on DB groupBy
   const userDictionaries = rawDictionaries;
 
+  // Fetch user's saved packs for the mashup modal
+  const savedPacks = await db.query.dictionaryLists.findMany({
+    where: eq(dictionaryLists.userId, dbUser.id),
+    orderBy: [desc(dictionaryLists.updatedAt)],
+  });
+
+  const allDictIds = Array.from(
+    new Set(savedPacks.flatMap((p) => p.dictionaryIds || [])),
+  );
+
+  const dictMetadata = allDictIds.length
+    ? await db.query.dictionaries.findMany({
+        where: inArray(dictionaries.id, allDictIds),
+        columns: {
+          id: true,
+          title: true,
+          language: true,
+        },
+      })
+    : [];
+
+  const dictMap = new Map(dictMetadata.map((d) => [d.id, d]));
+
+  const enrichedPacks = savedPacks.map((pack) => {
+    const packDicts = (pack.dictionaryIds || [])
+      .map((id) => dictMap.get(id))
+      .filter(Boolean) as Array<{ id: string; title: string; language: string }>;
+
+    return {
+      ...pack,
+      dictionaries: packDicts,
+      dictionaryCount: packDicts.length,
+    };
+  });
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <OnboardingTour
@@ -100,7 +135,10 @@ export default async function DashboardPage({
       </div>
 
       <div id="dictionary-grid">
-        <DashboardClient dictionaries={userDictionaries} />
+        <DashboardClient
+          dictionaries={userDictionaries}
+          savedPacks={enrichedPacks}
+        />
       </div>
     </main>
   );

@@ -2,6 +2,8 @@
 @import url("https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Tailwind Theme Configuration ──────────────────────────── */
 @theme inline {
   /* Primary Blue */

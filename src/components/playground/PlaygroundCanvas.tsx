@@ -487,7 +487,7 @@ export default function PlaygroundCanvas({
       className="relative w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden flex flex-col select-none"
     >
       {/* Full-width Sub-Navbar directly below main navbar */}
-      <div className="shrink-0 w-full border-b border-[var(--border-color)] bg-[var(--bg)]/90 dark:bg-[var(--surface)]/90 backdrop-blur-xl shadow-xs z-30">
+      <div className="shrink-0 w-full border-b border-[var(--border-color)] bg-[var(--surface)]/80 backdrop-blur-xl shadow-xs z-30">
         <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 gap-3 w-full">
           {/* Left side: Return icon button + Pack metadata */}
           <div className="flex items-center gap-3 min-w-0">
@@ -538,7 +538,7 @@ export default function PlaygroundCanvas({
             <button
               type="button"
               onClick={handleResetPositions}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg)] hover:bg-[var(--surface)] text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors"
               title={t("reset_layout")}
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -553,7 +553,7 @@ export default function PlaygroundCanvas({
                 "flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs active:scale-95",
                 isSidePanelOpen
                   ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40"
-                  : "border-[var(--border-color)] bg-[var(--bg)] hover:bg-[var(--surface)] text-[var(--fg)]/75 hover:text-[var(--fg)]",
+                  : "border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/5 text-[var(--fg)]/75 hover:text-[var(--fg)]",
               )}
               title="View Saved Phrases"
             >
@@ -639,14 +639,14 @@ export default function PlaygroundCanvas({
 
       {/* Floating Canvas Zoom & Camera Controls in Bottom Right */}
       <div
-        className="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-1 p-1 rounded-2xl border border-[var(--border-color)] bg-white/95 dark:bg-[var(--surface)]/95 backdrop-blur-xl shadow-xl transition-all"
+        className="fixed bottom-24 lg:bottom-6 right-4 sm:right-6 z-40 flex items-center gap-1 p-1 rounded-2xl border border-[var(--border-color)] bg-[var(--surface)]/95 backdrop-blur-xl shadow-xl transition-all"
         aria-label="Canvas zoom and camera controls"
       >
         <button
           type="button"
           onClick={handleZoomOut}
           disabled={zoom <= 0.25}
-          className="p-1.5 rounded-xl hover:bg-[var(--surface)] dark:hover:bg-white/10 text-[var(--fg)]/70 hover:text-[var(--fg)] transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+          className="p-1.5 rounded-xl hover:bg-[var(--bg)] text-[var(--fg)]/70 hover:text-[var(--fg)] transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
           title="Zoom Out (Mouse wheel down)"
           aria-label="Zoom Out"
         >
@@ -666,7 +666,7 @@ export default function PlaygroundCanvas({
           type="button"
           onClick={handleZoomIn}
           disabled={zoom >= 2.5}
-          className="p-1.5 rounded-xl hover:bg-[var(--surface)] dark:hover:bg-white/10 text-[var(--fg)]/70 hover:text-[var(--fg)] transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+          className="p-1.5 rounded-xl hover:bg-[var(--bg)] text-[var(--fg)]/70 hover:text-[var(--fg)] transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
           title="Zoom In (Mouse wheel up)"
           aria-label="Zoom In"
         >
