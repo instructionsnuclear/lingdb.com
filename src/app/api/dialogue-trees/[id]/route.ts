@@ -29,6 +29,8 @@ const updateTreeSchema = z.object({
     })
     .optional(),
   zoom: z.number().optional(),
+  metaContext: z.string().max(5000).nullable().optional(),
+  level: z.string().optional(),
 });
 
 // GET /api/dialogue-trees/[id]
@@ -122,6 +124,9 @@ export async function PATCH(
     updateData.nodes = result.data.nodes as DialogueTreeNode[];
   if (result.data.pan !== undefined) updateData.pan = result.data.pan;
   if (result.data.zoom !== undefined) updateData.zoom = result.data.zoom;
+  if (result.data.metaContext !== undefined)
+    updateData.metaContext = result.data.metaContext ? result.data.metaContext.trim() : null;
+  if (result.data.level !== undefined) updateData.level = result.data.level;
 
   const [updated] = await db
     .update(dialogueTrees)

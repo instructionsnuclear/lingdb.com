@@ -10,11 +10,14 @@ import {
   GitBranch,
   ArrowRight,
   Loader2,
+  Sparkles,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { DialogueTree } from "@/lib/db/schema";
 import { createDialogueTree, deleteDialogueTree } from "@/lib/api/dialogue-trees.api";
 import { useToast } from "@/components/ui/Toast";
+import { CEFR_LEVELS } from "./DialogueTreeSettingsModal";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "de", name: "German", flag: "🇩🇪", defaultPhrase: "Hallo, wie geht es dir?" },
@@ -28,6 +31,8 @@ export interface DialogueTreeSummary {
   id: string;
   title: string;
   language: string;
+  level?: string | null;
+  metaContext?: string | null;
   nodes?: any;
   updatedAt?: Date | string | null;
 }
@@ -63,6 +68,8 @@ export default function DialogueTreeSelectorModal({
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
   const [treeTitle, setTreeTitle] = useState("");
   const [initialPhrase, setInitialPhrase] = useState("Hello, how are you?");
+  const [level, setLevel] = useState<string>("B1");
+  const [metaContext, setMetaContext] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingTreeId, setDeletingTreeId] = useState<string | null>(null);
 
@@ -103,11 +110,15 @@ export default function DialogueTreeSelectorModal({
         title: treeTitle.trim(),
         language: selectedLanguage,
         initialPhrase: initialPhrase.trim() || undefined,
+        level,
+        metaContext: metaContext.trim() || undefined,
       });
 
       toast(t("toasts.treeCreated"), "success");
       onTreeCreated(res.tree);
       setTreeTitle("");
+      setMetaContext("");
+      setLevel("B1");
       if (!isInline && onClose) onClose();
     } catch (err) {
       console.error("Failed to create tree:", err);
@@ -128,6 +139,8 @@ export default function DialogueTreeSelectorModal({
         title: template.title,
         language: template.language,
         initialPhrase: template.initialPhrase,
+        level,
+        metaContext: metaContext.trim() || undefined,
       });
 
       toast(t("toasts.templateCreated"), "success");
@@ -266,10 +279,20 @@ export default function DialogueTreeSelectorModal({
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2.5">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-700 dark:text-violet-300">
-                            <span>{langObj?.flag || "🌐"}</span>
-                            <span>{langObj?.name || tree.language.toUpperCase()}</span>
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                              <span>{langObj?.flag || "🌐"}</span>
+                              <span>{langObj?.name || tree.language.toUpperCase()}</span>
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-violet-500/10 text-violet-700 dark:text-violet-300">
+                              {tree.level || "B1"}
+                            </span>
+                            {tree.metaContext && (
+                              <span className="p-1 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400" title={t("metaContextActive")}>
+                                <Sparkles className="w-3 h-3" />
+                              </span>
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={(e) => handleDeleteTree(e, tree.id)}
@@ -368,6 +391,62 @@ export default function DialogueTreeSelectorModal({
               <span className="text-[11px] text-[var(--fg)]/50 mt-1 block">
                 {t("startingPhraseHint")}
               </span>
+            </div>
+
+            {/* Language Level Selector */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70">
+                  <GraduationCap className="w-4 h-4 text-violet-500" />
+                  <span>{t("levelLabel")}</span>
+                </label>
+                <span className="text-[11px] font-semibold text-violet-600 dark:text-violet-400">
+                  {level} - {CEFR_LEVELS.find((l) => l.code === level)?.desc}
+                </span>
+              </div>
+              <div className="grid grid-cols-6 gap-2">
+                {CEFR_LEVELS.map((lvl) => (
+                  <button
+                    key={lvl.code}
+                    type="button"
+                    onClick={() => setLevel(lvl.code)}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-2xl border text-xs font-medium transition-all cursor-pointer",
+                      level === lvl.code
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/40 text-violet-600 dark:text-violet-300 ring-2 ring-violet-500/20"
+                        : "border-[var(--border-color)] hover:bg-[var(--surface)] text-[var(--fg)]/70",
+                    )}
+                  >
+                    <span className="text-xs font-bold font-mono">{lvl.code}</span>
+                    <span className="text-[9px] text-[var(--fg)]/50 mt-0.5 truncate max-w-full">
+                      {lvl.desc}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Meta Context / Scenario Memory */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>{t("metaContextLabel")}</span>
+                </label>
+                <span className="text-[11px] font-mono text-[var(--fg)]/50">
+                  {metaContext.length} / 5000
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--fg)]/50 mb-2 leading-relaxed">
+                {t("metaContextHint")}
+              </p>
+              <textarea
+                value={metaContext}
+                onChange={(e) => setMetaContext(e.target.value.slice(0, 5000))}
+                rows={4}
+                maxLength={5000}
+                className="w-full px-4 py-2.5 rounded-2xl border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-violet-500/40 text-xs sm:text-sm font-normal leading-relaxed transition-all resize-y"
+              />
             </div>
 
             {/* Quick Starter Templates */}

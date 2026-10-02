@@ -12,7 +12,18 @@ const requestSchema = z.object({
   language: z.string().min(1),
   currentPhrase: z.string().min(1),
   isRefresh: z.boolean().optional(),
+  metaContext: z.string().max(5000).nullable().optional(),
+  level: z.string().nullable().optional(),
 });
+
+const CEFR_LEVEL_GUIDES: Record<string, string> = {
+  A1: "A1 (Beginner - strictly use simple vocabulary, basic short sentences, elementary present tense, everyday basic words)",
+  A2: "A2 (Elementary - simple conversational structures, routine familiar exchanges, simple connectors)",
+  B1: "B1 (Intermediate - standard conversational language, clear straightforward sentences, everyday idioms)",
+  B2: "B2 (Upper Intermediate - varied vocabulary, more complex sentence structures, nuanced conversational phrases)",
+  C1: "C1 (Advanced - sophisticated vocabulary, natural idioms, complex grammar, stylistic subtlety)",
+  C2: "C2 (Mastery - native-level eloquence, rich figurative language, highly nuanced conversational mastery)",
+};
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -58,7 +69,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { conversationLine, language, currentPhrase, isRefresh } = result.data;
+  const {
+    conversationLine,
+    language,
+    currentPhrase,
+    isRefresh,
+    metaContext,
+    level,
+  } = result.data;
 
   // Rate limiting: 5 AI generations per minute and 30 per hour
   const isAllowedPerMinute = await checkRateLimit(
@@ -110,9 +128,31 @@ export async function POST(request: NextRequest) {
     .map((phrase, idx) => `Speaker ${idx % 2 === 0 ? "A" : "B"}: "${phrase}"`)
     .join("\n");
 
+  const targetLevel = level && CEFR_LEVEL_GUIDES[level] ? level : "B1";
+  const levelDescription = CEFR_LEVEL_GUIDES[targetLevel];
+
+  const metaContextSection =
+    metaContext && metaContext.trim().length > 0
+      ? `
+SCENARIO META CONTEXT & MEMORY (Fake RAG Border):
+"""
+${metaContext.trim().slice(0, 5000)}
+"""
+
+CRITICAL RULE FOR META CONTEXT:
+The meta context above defines the background scenario, character roles, domain knowledge, and memory border.
+It acts as memory and a context boundary to prevent suggestions from drifting out of context.
+It must NOT hijack or break the natural flow of the conversation, nor force unnatural exposition. Keep the continuations sounding like authentic human speech in reaction to "${currentPhrase}", while remaining true to the roles, setting, and domain defined in this memory border.`
+      : "";
+
   const systemPrompt = `You are a conversational language learning tutor.
 The user is building an interactive dialogue tree in ${languageName}.
 A dialogue tree explores how many different, natural ways a conversation can continue.
+
+TARGET LANGUAGE LEVEL:
+CEFR ${targetLevel} - ${levelDescription}
+Suggested phrases MUST match this language complexity and vocabulary level appropriately for a learner.
+${metaContextSection}
 
 CONVERSATION LINE CONTEXT (from starting phrase to the latest phrase):
 ${formattedConversation}
@@ -128,6 +168,8 @@ CRITICAL INSTRUCTIONS:
    - Option 3: Counter-question, topic redirection, or alternative nuance).
 3. Do not include quotes, speaker labels, or numbers inside the string values.
 4. Keep each response concise (1-2 sentences max), realistic for everyday spoken communication.
+5. Strictly adhere to CEFR Level ${targetLevel}.
+${metaContext && metaContext.trim().length > 0 ? "6. Respect the scenario meta context memory border so suggestions remain thematically coherent." : ""}
 
 Respond STRICTLY with a valid JSON object in this exact shape:
 {

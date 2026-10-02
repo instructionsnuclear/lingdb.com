@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Workflow, X, Loader2 } from "lucide-react";
+import { Workflow, X, Loader2, Sparkles, GraduationCap } from "lucide-react";
 import type { DialogueTree } from "@/lib/db/schema";
 import { createDialogueTree } from "@/lib/api/dialogue-trees.api";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils/cn";
 import { useTranslations } from "next-intl";
+import { CEFR_LEVELS } from "./DialogueTreeSettingsModal";
 
 export const LANGUAGES = [
   { code: "en", flag: "🇬🇧", defaultPhrase: "Hello, how are you?" },
@@ -40,6 +41,8 @@ export default function CreateDialogueTreeModal({
   const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState(initialTitle);
   const [language, setLanguage] = useState(initialLanguage);
+  const [level, setLevel] = useState<string>("B1");
+  const [metaContext, setMetaContext] = useState<string>("");
   const [initialPhrase, setInitialPhrase] = useState(
     defaultPhrase ||
       LANGUAGES.find((l) => l.code === initialLanguage)?.defaultPhrase ||
@@ -61,12 +64,16 @@ export default function CreateDialogueTreeModal({
         title: title.trim(),
         language,
         initialPhrase: initialPhrase.trim() || undefined,
+        level,
+        metaContext: metaContext.trim() || undefined,
       });
 
       toast(t("toasts.treeCreated"), "success");
       onTreeCreated(res.tree);
       onClose();
       setTitle("");
+      setMetaContext("");
+      setLevel("B1");
     } catch (err) {
       console.error("Failed to create tree:", err);
       toast(t("toasts.createFailed"), "error");
@@ -171,6 +178,62 @@ export default function CreateDialogueTreeModal({
             <span className="text-[11px] text-[var(--fg)]/50 mt-1 block">
               {t("startingPhraseHint")}
             </span>
+          </div>
+
+          {/* CEFR Level Selector */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70">
+                <GraduationCap className="w-4 h-4 text-primary-500" />
+                <span>{t("levelLabel")}</span>
+              </label>
+              <span className="text-[11px] font-semibold text-primary-600 dark:text-primary-400">
+                {level} - {CEFR_LEVELS.find((l) => l.code === level)?.desc}
+              </span>
+            </div>
+            <div className="grid grid-cols-6 gap-1.5">
+              {CEFR_LEVELS.map((lvl) => (
+                <button
+                  key={lvl.code}
+                  type="button"
+                  onClick={() => setLevel(lvl.code)}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer",
+                    level === lvl.code
+                      ? "border-primary-500 bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 ring-2 ring-primary-500/20"
+                      : "border-[var(--border-color)] hover:bg-[var(--bg)] text-[var(--fg)]/70",
+                  )}
+                >
+                  <span className="text-xs font-bold font-mono">{lvl.code}</span>
+                  <span className="text-[9px] text-[var(--fg)]/50 mt-0.5 truncate max-w-full">
+                    {lvl.desc}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Meta Context / Scenario Memory */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>{t("metaContextLabel")}</span>
+              </label>
+              <span className="text-[11px] font-mono text-[var(--fg)]/50">
+                {metaContext.length} / 5000
+              </span>
+            </div>
+            <p className="text-[11px] text-[var(--fg)]/50 mb-1.5 leading-relaxed">
+              {t("metaContextHint")}
+            </p>
+            <textarea
+              value={metaContext}
+              onChange={(e) => setMetaContext(e.target.value.slice(0, 5000))}
+              rows={3}
+              maxLength={5000}
+              className="w-full px-3.5 py-2 rounded-2xl border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-primary-500/40 text-xs font-normal leading-relaxed transition-all resize-y"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3">

@@ -148,13 +148,25 @@ export default function DialogueTreeSelector({
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-2xl" title={localizedLang}>
                         {langObj?.flag || "🌐"}
                       </span>
                       <span className="text-xs font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-950/60 px-2 py-0.5 rounded-md border border-primary-500/20">
                         {tree.language}
                       </span>
+                      <span className="text-xs font-bold font-mono text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/60 px-2 py-0.5 rounded-md border border-violet-500/20">
+                        {tree.level || "B1"}
+                      </span>
+                      {tree.metaContext && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded-md border border-amber-500/20"
+                          title={t("metaContextActive")}
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span className="hidden sm:inline">{t("metaContextActive")}</span>
+                        </span>
+                      )}
                     </div>
 
                     <button

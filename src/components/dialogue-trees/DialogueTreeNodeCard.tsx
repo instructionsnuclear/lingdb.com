@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useState, useEffect } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import {
   Sparkles,
   Plus,
@@ -11,6 +12,7 @@ import {
   X,
   RefreshCw,
   Loader2,
+  GripVertical,
 } from "lucide-react";
 import type { DialogueTreeNode, Word } from "@/lib/db/schema";
 import DialoguePhraseWords, {
@@ -30,6 +32,9 @@ interface DialogueTreeNodeCardProps {
   isGeneratingSuggestions: boolean;
   savedWordsMap: Map<string, SavedWordInfo>;
   userDictionaries: UserDictionaryMeta[];
+  zoom?: number;
+  zIndex?: number;
+  onBringToFront?: () => void;
   onWordSaved: (word: Word, dictTitle: string) => void;
   onSelectNode: (nodeId: string) => void;
   onClickAddLink: (nodeId: string) => void;
@@ -51,6 +56,9 @@ function DialogueTreeNodeCard({
   isGeneratingSuggestions,
   savedWordsMap,
   userDictionaries,
+  zoom = 1,
+  zIndex = 10,
+  onBringToFront,
   onWordSaved,
   onSelectNode,
   onClickAddLink,
@@ -65,6 +73,31 @@ function DialogueTreeNodeCard({
   const isRoot = node.parentId === null;
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(node.text);
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: node.id,
+    });
+
+  // Scale-compensated transform so dragging follows cursor 1:1 regardless of canvas zoom
+  const scaledTransform = transform
+    ? {
+        ...transform,
+        x: transform.x / zoom,
+        y: transform.y / zoom,
+      }
+    : null;
+
+  const posX = scaledTransform ? Math.round(node.x + scaledTransform.x) : node.x;
+  const posY = scaledTransform ? Math.round(node.y + scaledTransform.y) : node.y;
+
+  const cardStyle: React.CSSProperties = {
+    transform: `translate3d(${posX}px, ${posY}px, 0)`,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    zIndex: isDragging ? 9999 : isSuggestionsOpen ? 50 : isSelected ? 30 : zIndex,
+  };
 
   useEffect(() => {
     setEditText(node.text);
@@ -99,14 +132,10 @@ function DialogueTreeNodeCard({
 
   return (
     <div
+      ref={setNodeRef}
       data-dialogue-node={node.id}
-      style={{
-        transform: `translate(${node.x}px, ${node.y}px)`,
-        position: "absolute",
-        left: 0,
-        top: 0,
-        zIndex: isSuggestionsOpen ? 50 : isSelected ? 30 : 10,
-      }}
+      style={cardStyle}
+      onMouseDown={() => onBringToFront?.()}
       onClick={(e) => {
         e.stopPropagation();
         onSelectNode(node.id);
@@ -114,18 +143,26 @@ function DialogueTreeNodeCard({
       className="select-none transition-shadow duration-200"
     >
       <div className="relative group">
-        {/* Main Card */}
-        <div
-          className={cn(
-            "w-[310px] rounded-3xl p-4 transition-all duration-200 backdrop-blur-2xl bg-[var(--surface)]/90 border-2 shadow-lg",
-            speakerTheme,
-            isSelected &&
-              "ring-4 ring-primary-500/25 scale-[1.01] shadow-2xl",
-          )}
-        >
-          {/* Card Header */}
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-1.5">
+        {/* Phrase Card + Right Link Handle Wrapper (anchors the handle strictly to the phrase card's vertical center) */}
+        <div className="relative">
+          {/* Main Card */}
+          <div
+            className={cn(
+              "w-[310px] rounded-3xl p-4 transition-all duration-200 backdrop-blur-2xl bg-[var(--surface)]/90 border-2 shadow-lg",
+              speakerTheme,
+              isSelected &&
+                "ring-4 ring-primary-500/25 scale-[1.01] shadow-2xl",
+              isDragging && "ring-2 ring-primary-500 shadow-2xl scale-[1.02] cursor-grabbing",
+            )}
+          >
+          {/* Card Header (Drag handle like Playground tables) */}
+          <div
+            {...listeners}
+            {...attributes}
+            className="flex items-center justify-between gap-2 mb-2.5 cursor-grab active:cursor-grabbing rounded-xl p-1 -m-1 hover:bg-[var(--fg)]/5 transition-colors"
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <GripVertical className="w-3.5 h-3.5 text-[var(--fg)]/30 hover:text-[var(--fg)]/70 transition-colors shrink-0" />
               <span
                 className={cn(
                   "text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full border",
@@ -144,7 +181,11 @@ function DialogueTreeNodeCard({
             </div>
 
             {/* Top Action Icons: Sparkles (AI ideas), Pencil (edit phrase), Trash (delete) */}
-            <div className="flex items-center gap-1">
+            <div
+              className="flex items-center gap-1 shrink-0"
+              onPointerDown={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <button
                 type="button"
                 onClick={(e) => {
@@ -279,8 +320,9 @@ function DialogueTreeNodeCard({
             <Plus className="w-4 h-4" />
           </button>
         </div>
+      </div>
 
-        {/* ─── AI Suggestions Dropdown / Drawer ─── */}
+      {/* ─── AI Suggestions Dropdown / Drawer ─── */}
         {/* Rendered when open, floats above other cards with z-50 */}
         {isSuggestionsOpen &&
           (isGeneratingSuggestions ||

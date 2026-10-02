@@ -10,6 +10,8 @@ const createTreeSchema = z.object({
   title: z.string().min(1, "Title is required").max(120),
   language: z.string().min(1),
   initialPhrase: z.string().max(500).optional(),
+  metaContext: z.string().max(5000).optional(),
+  level: z.string().optional(),
 });
 
 // GET /api/dialogue-trees — list user's dialogue trees
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { title, language, initialPhrase } = result.data;
+  const { title, language, initialPhrase, metaContext, level } = result.data;
 
   // Default phrase in an empty Dialogue tree canvas is "Hello, how are you?"
   const rootText = initialPhrase?.trim() || "Hello, how are you?";
@@ -87,6 +89,8 @@ export async function POST(request: NextRequest) {
       userId: dbUser.id,
       title,
       language,
+      metaContext: metaContext?.trim() || null,
+      level: level || "B1",
       nodes: [rootNode],
       pan: { x: 0, y: 0 },
       zoom: 1,

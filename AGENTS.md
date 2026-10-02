@@ -83,13 +83,16 @@ Interactive branching conversation builder helping learners discover dialogue co
 
 ### Architecture & Components
 - **Page Route**: `/[locale]/dialogue-trees`
-- **Canvas (`DialogueTreeCanvas.tsx`)**: Infinite pan & zoom canvas (centered focal mouse-wheel zoom, spacebar/middle-click drag, dot grid background, auto-layout).
-- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
-- **Connections (`DialogueTreeConnections.tsx`)**: SVG cubic bezier curves with directional arrow markers and branch highlighting.
-- **Link Handles**: Hoverable/clickable right-side arrow handle with `+` icon on every card to branch out custom responses infinitely.
+- **Canvas (`DialogueTreeCanvas.tsx`)**: Infinite pan & zoom canvas (centered focal mouse-wheel zoom, spacebar/middle-click drag, dot grid background, auto-layout, dnd-kit draggable node context with scale compensation).
+- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), header drag handle (`GripVertical`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
+- **Connections (`DialogueTreeConnections.tsx`) & Smart Routing (`smart-arrow.ts`)**: Procedural, obstacle-aware cubic Bezier paths that dynamically recalculate in real-time as phrase blocks move in 2D space. Clean, crisp curves without glow or arrowheads flush to card boundaries.
+- **Link Handles**: Hoverable/clickable right-side arrow handle with `+` icon on every card to branch out custom responses infinitely. Anchored directly to the phrase card's vertical center.
 - **AI Continuation Engine (`/api/dialogue-trees/suggest`)**:
   - Traces the exact linear branch via `getConversationLine()` from root to active node (avoiding neighbor branch cross-contamination).
   - Prompts OpenRouter to suggest 3 distinct, natural continuations.
+  - **Scenario Meta Context (Fake RAG Memory Border)**: Users can define custom background scenario context, character roles, and domain knowledge (max 5,000 characters). This functions as memory guardrails/borders to keep suggestions strictly in character/context without hijacking organic conversational flow.
+  - **CEFR Language Level Guidance**: Allows choosing language proficiency levels from A1 (Beginner) to C2 (Mastery) to calibrate vocabulary complexity and grammatical depth.
+  - **Settings Modal (`DialogueTreeSettingsModal.tsx`)**: Accessed via the top-bar gear button on the canvas, or set upon tree creation via the selector/creation modals.
   - Credit consumption: Auto-generated continuations (on adding a phrase or editing text) do NOT consume AI credits. Only manual refresh via the refresh icon button consumes 1 AI credit.
   - Rate limiting: Strictly rate-limited to 5 AI generations per minute and 30 generations per hour via `checkRateLimit` and `activityLogs`.
   - Multi-box support: Multiple suggestion boxes can remain open simultaneously with independent close (`X`) buttons. Re-opening a box preserves previous suggestions without redundant AI calls.
@@ -106,7 +109,7 @@ Located in: `src/lib/db/schema.ts`
 - **`users`**: Auth via Supabase, tracks `aiCredits`, `streakCount`, `tier`.
 - **`dictionaries`**: Main entity. Has `language`, `isPublic`, and `activeMagicWords` (JSONB).
 - **`words`**: Belongs to dictionaries. Has `order` for drag-and-drop.
-- **`dialogue_trees`**: Conversational tree entity with JSONB `nodes`, `pan`, and `zoom`.
+- **`dialogue_trees`**: Conversational tree entity with JSONB `nodes`, `pan`, `zoom`, `metaContext` (text, max 5000 chars), and `level` (CEFR A1-C2).
 - **`flashcard_progress`**: Leitner system tracking (`leitner_box` 1-5).
 - **`blogs`**: Rich text support via JSONB `content`.
 

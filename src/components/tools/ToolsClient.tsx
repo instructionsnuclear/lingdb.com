@@ -1,20 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
 import {
   Layers,
   Sparkles,
   ArrowRight,
-  Plus,
   Workflow,
 } from "lucide-react";
 import type { EnrichedDictionaryList } from "@/lib/api/playground.api";
-import type { DialogueTree } from "@/lib/db/schema";
 import DictionaryListSelectorModal from "@/components/playground/DictionaryListSelectorModal";
 import DialogueTreeSelectorModal from "@/components/dialogue-trees/DialogueTreeSelectorModal";
 
@@ -49,45 +45,6 @@ export default function ToolsClient({
   const [isPlaygroundModalOpen, setIsPlaygroundModalOpen] = useState(false);
   const [isTreeModalOpen, setIsTreeModalOpen] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const playgroundCardRef = useRef<HTMLDivElement>(null);
-  const treeCardRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(
-    () => {
-      // Header entrance
-      if (headerRef.current) {
-        gsap.fromTo(
-          headerRef.current.children,
-          { opacity: 0, y: -20 },
-          {
-            opacity: 1,
-            y: 0,
-            duration: 0.6,
-            stagger: 0.1,
-            ease: "power3.out",
-          },
-        );
-      }
-
-      // Cards entrance
-      gsap.fromTo(
-        [playgroundCardRef.current, treeCardRef.current],
-        { opacity: 0, y: 35 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.7,
-          stagger: 0.15,
-          ease: "power3.out",
-          delay: 0.15,
-        },
-      );
-    },
-    { scope: containerRef },
-  );
-
   const handleOpenPlaygroundModal = () => {
     if (!isLoggedIn) {
       router.push(`/${locale}/login?returnUrl=/${locale}/tools`);
@@ -105,17 +62,14 @@ export default function ToolsClient({
   };
 
   return (
-    <div
-      ref={containerRef}
-      className="min-h-[calc(100vh-4rem)] w-full py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden"
-    >
+    <div className="min-h-[calc(100vh-4rem)] w-full py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Ambient background glows */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
       <div className="max-w-6xl mx-auto space-y-10">
         {/* Header Section */}
-        <div ref={headerRef} className="text-center space-y-3 max-w-2xl mx-auto">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold font-heading text-[var(--fg)] tracking-tight">
             {t("pageTitle")}
           </h1>
@@ -136,10 +90,7 @@ export default function ToolsClient({
         {/* 2-Column Tool Studio Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* ─── CARD 1: PLAYGROUND ─── */}
-          <div
-            ref={playgroundCardRef}
-            className="group relative flex flex-col justify-between rounded-3xl p-6 sm:p-8 bg-[var(--surface)]/80 dark:bg-white/[0.03] border border-[var(--border-color)] dark:border-white/10 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-emerald-500/40 hover:-translate-y-1 overflow-hidden"
-          >
+          <div className="group relative flex flex-col justify-between rounded-3xl p-6 sm:p-8 bg-[var(--surface)]/80 dark:bg-white/[0.03] border border-[var(--border-color)] dark:border-white/10 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-emerald-500/40 hover:-translate-y-1 overflow-hidden">
             {/* Top corner gradient highlight */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-emerald-500/15 via-teal-500/5 to-transparent rounded-bl-full pointer-events-none transition-transform duration-500 group-hover:scale-110" />
 
@@ -230,10 +181,7 @@ export default function ToolsClient({
           </div>
 
           {/* ─── CARD 2: DIALOGUE TREE ─── */}
-          <div
-            ref={treeCardRef}
-            className="group relative flex flex-col justify-between rounded-3xl p-6 sm:p-8 bg-[var(--surface)]/80 dark:bg-white/[0.03] border border-[var(--border-color)] dark:border-white/10 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-violet-500/40 hover:-translate-y-1 overflow-hidden"
-          >
+          <div className="group relative flex flex-col justify-between rounded-3xl p-6 sm:p-8 bg-[var(--surface)]/80 dark:bg-white/[0.03] border border-[var(--border-color)] dark:border-white/10 backdrop-blur-2xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-violet-500/40 hover:-translate-y-1 overflow-hidden">
             {/* Top corner gradient highlight */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-violet-500/15 via-purple-500/5 to-transparent rounded-bl-full pointer-events-none transition-transform duration-500 group-hover:scale-110" />
 

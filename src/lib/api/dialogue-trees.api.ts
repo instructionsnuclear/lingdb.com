@@ -7,6 +7,8 @@ export interface CreateDialogueTreePayload {
   title: string;
   language: string;
   initialPhrase?: string;
+  metaContext?: string;
+  level?: string;
 }
 
 export interface UpdateDialogueTreePayload {
@@ -15,6 +17,8 @@ export interface UpdateDialogueTreePayload {
   nodes?: DialogueTreeNode[];
   pan?: { x: number; y: number };
   zoom?: number;
+  metaContext?: string | null;
+  level?: string | null;
 }
 
 export interface SuggestDialogueResponsesPayload {
@@ -22,6 +26,8 @@ export interface SuggestDialogueResponsesPayload {
   language: string;
   currentPhrase: string;
   isRefresh?: boolean;
+  metaContext?: string | null;
+  level?: string | null;
 }
 
 export interface SaveWordFromTreePayload {

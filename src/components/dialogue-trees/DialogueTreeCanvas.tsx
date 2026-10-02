@@ -9,6 +9,15 @@ import {
   type FormEvent,
 } from "react";
 import {
+  DndContext,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  type DragStartEvent,
+  type DragMoveEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
@@ -17,10 +26,13 @@ import {
   Plus,
   Send,
   X,
+  Settings,
+  Sparkles,
 } from "lucide-react";
 import type { DialogueTree, DialogueTreeNode, Word } from "@/lib/db/schema";
 import DialogueTreeNodeCard from "./DialogueTreeNodeCard";
 import DialogueTreeConnections from "./DialogueTreeConnections";
+import DialogueTreeSettingsModal from "./DialogueTreeSettingsModal";
 import type { SavedWordInfo, UserDictionaryMeta } from "./DialoguePhraseWords";
 import {
   layoutDialogueTree,
@@ -136,6 +148,74 @@ export default function DialogueTreeCanvas({
   const [newPhraseInput, setNewPhraseInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Dialogue Tree Settings Modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // ─── Drag & Drop (like Playground canvas) ──────────────────────────────────
+  const [zIndices, setZIndices] = useState<Record<string, number>>({});
+  const [, setTopZIndex] = useState(10);
+
+  const bringToFront = useCallback((id: string) => {
+    setTopZIndex((prev) => {
+      const nextZ = prev + 1;
+      setZIndices((z) => ({ ...z, [id]: nextZ }));
+      return nextZ;
+    });
+  }, []);
+
+  const [activeDrag, setActiveDrag] = useState<{
+    id: string;
+    delta: { x: number; y: number };
+  } | null>(null);
+
+  // Pointer sensor with 5px distance constraint so clicks on words/buttons work seamlessly
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+  );
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const id = String(event.active.id);
+      bringToFront(id);
+      setSelectedNodeId(id);
+      setActiveDrag({ id, delta: { x: 0, y: 0 } });
+    },
+    [bringToFront],
+  );
+
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      const id = String(event.active.id);
+      setActiveDrag({
+        id,
+        delta: {
+          x: event.delta.x / zoom,
+          y: event.delta.y / zoom,
+        },
+      });
+    },
+    [zoom],
+  );
+
+  // Live nodes with realtime position updates while dragging (for smart procedural arrow recalculation)
+  const liveNodes = useMemo(() => {
+    if (!activeDrag) return nodes;
+    return nodes.map((n) => {
+      if (n.id === activeDrag.id) {
+        return {
+          ...n,
+          x: Math.round(n.x + activeDrag.delta.x),
+          y: Math.round(n.y + activeDrag.delta.y),
+        };
+      }
+      return n;
+    });
+  }, [nodes, activeDrag]);
+
   // Debounced auto-save function
   const triggerAutoSave = useCallback(
     (newNodes: DialogueTreeNode[], newPan = pan, newZoom = zoom) => {
@@ -172,6 +252,39 @@ export default function DialogueTreeCanvas({
     [pan, zoom, tree.id, onTreeUpdated],
   );
 
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, delta } = event;
+      const id = String(active.id);
+      const deltaX = Math.round(delta.x / zoom);
+      const deltaY = Math.round(delta.y / zoom);
+
+      setActiveDrag(null);
+
+      if (deltaX === 0 && deltaY === 0) return;
+
+      setNodes((prevNodes) => {
+        const updated = prevNodes.map((n) => {
+          if (n.id === id) {
+            return {
+              ...n,
+              x: Math.round(n.x + deltaX),
+              y: Math.round(n.y + deltaY),
+            };
+          }
+          return n;
+        });
+        triggerAutoSave(updated);
+        return updated;
+      });
+    },
+    [zoom, triggerAutoSave],
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDrag(null);
+  }, []);
+
   // Fetch AI suggestions for a specific node
   const fetchSuggestionsForNode = useCallback(
     async (nodeId: string, currentNodes = nodes, isRefresh = false) => {
@@ -189,6 +302,8 @@ export default function DialogueTreeCanvas({
           language: tree.language,
           currentPhrase: node.text,
           isRefresh,
+          metaContext: tree.metaContext,
+          level: tree.level,
         });
 
         setSuggestionsMap((prev) => ({
@@ -209,7 +324,7 @@ export default function DialogueTreeCanvas({
         setGeneratingForNodeId(null);
       }
     },
-    [nodes, tree.language, onCreditsUpdated, toast],
+    [nodes, tree.language, tree.metaContext, tree.level, onCreditsUpdated, toast],
   );
 
   // Toggle suggestions box: keeps previously generated suggestions if they exist!
@@ -262,13 +377,20 @@ export default function DialogueTreeCanvas({
       const newNodeId = uuidv4();
       const existingSiblings = nodes.filter((n) => n.parentId === parentId);
 
+      // Position the new node to the right of parent, staggering below existing siblings without resetting any card positions
+      let newY = parentNode.y;
+      if (existingSiblings.length > 0) {
+        const lowestSiblingY = Math.max(...existingSiblings.map((s) => s.y));
+        newY = lowestSiblingY + 160;
+      }
+
       const newNode: DialogueTreeNode = {
         id: newNodeId,
         parentId,
         text: trimmed,
         childrenIds: [],
         x: parentNode.x + 450,
-        y: parentNode.y + existingSiblings.length * 180,
+        y: newY,
       };
 
       const updatedNodes = nodes.map((n) => {
@@ -282,19 +404,17 @@ export default function DialogueTreeCanvas({
       });
       updatedNodes.push(newNode);
 
-      // Auto-layout to ensure balanced visual spacing
-      const layedOut = layoutDialogueTree(updatedNodes);
-
-      setNodes(layedOut);
+      // Keep all custom user-dragged positions intact
+      setNodes(updatedNodes);
       setSelectedNodeId(newNodeId);
       setAddingResponseParentId(null);
       setNewPhraseInput("");
 
-      triggerAutoSave(layedOut);
+      triggerAutoSave(updatedNodes);
 
       // Open suggestions for the newly added phrase without closing other open boxes!
       setOpenSuggestionsNodeIds((prev) => new Set([...prev, newNodeId]));
-      fetchSuggestionsForNode(newNodeId, layedOut);
+      fetchSuggestionsForNode(newNodeId, updatedNodes);
     },
     [nodes, triggerAutoSave, fetchSuggestionsForNode],
   );
@@ -330,12 +450,12 @@ export default function DialogueTreeCanvas({
           return n;
         });
 
-      const layedOut = layoutDialogueTree(filtered);
-      setNodes(layedOut);
+      // Keep all remaining cards in their exact positions
+      setNodes(filtered);
       if (selectedNodeId && toDelete.has(selectedNodeId)) {
         setSelectedNodeId(nodeToDelete.parentId);
       }
-      triggerAutoSave(layedOut);
+      triggerAutoSave(filtered);
       toast("Phrase and its branches removed", "info");
     },
     [nodes, selectedNodeId, triggerAutoSave, toast],
@@ -532,18 +652,47 @@ export default function DialogueTreeCanvas({
 
           <div className="flex items-center gap-2">
             <Workflow className="w-4 h-4 text-primary-500" />
-            <span className="font-bold text-sm tracking-tight text-[var(--fg)] truncate max-w-[200px] sm:max-w-xs">
+            <span className="font-bold text-sm tracking-tight text-[var(--fg)] truncate max-w-[160px] sm:max-w-xs">
               {tree.title}
             </span>
             <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold border border-primary-500/20">
               {tree.language}
             </span>
+            <span
+              title={t("levelLabel")}
+              className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border border-violet-500/20"
+            >
+              {tree.level || "B1"}
+            </span>
+            {tree.metaContext && (
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(true)}
+                title={t("metaContextActive")}
+                className="hidden md:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span className="truncate max-w-[130px]">{t("metaContextActive")}</span>
+              </button>
+            )}
           </div>
 
           <div className="hidden sm:flex items-center gap-1.5 ml-2 text-xs text-[var(--fg)]/60">
             <span>•</span>
             <span>{t("nodeCount", { count: nodes.length })}</span>
           </div>
+
+          <div className="h-4 w-px bg-[var(--border-color)]" />
+
+          {/* Tree Settings Gear Button */}
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen(true)}
+            title={t("treeSettings")}
+            className="p-1.5 rounded-xl text-[var(--fg)]/70 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Right Side: Zoom Controls */}
@@ -600,53 +749,64 @@ export default function DialogueTreeCanvas({
           }}
         />
 
-        {/* Scaled & Panned Canvas Layer */}
-        <div
-          style={{
-            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-            transformOrigin: "0 0",
-          }}
-          className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
         >
-          {/* SVG Connection Lines */}
-          <DialogueTreeConnections
-            nodes={nodes}
-            selectedNodeId={selectedNodeId}
-          />
+          {/* Scaled & Panned Canvas Layer */}
+          <div
+            style={{
+              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transformOrigin: "0 0",
+            }}
+            className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+          >
+            {/* SVG Connection Lines (smart procedural path recalculation in real time) */}
+            <DialogueTreeConnections
+              nodes={liveNodes}
+              selectedNodeId={selectedNodeId}
+            />
 
-          {/* Tree Phrase Node Cards */}
-          {nodes.map((node) => {
-            const depth = getNodeDepth(nodes, node.id);
-            return (
-              <DialogueTreeNodeCard
-                key={node.id}
-                node={node}
-                depth={depth}
-                isSelected={selectedNodeId === node.id}
-                isLatest={false}
-                isSuggestionsOpen={openSuggestionsNodeIds.has(node.id)}
-                aiSuggestions={suggestionsMap[node.id]}
-                isGeneratingSuggestions={generatingForNodeId === node.id}
-                savedWordsMap={savedWordsMap}
-                userDictionaries={userDictionaries}
-                onWordSaved={onWordSaved}
-                onSelectNode={(id) => setSelectedNodeId(id)}
-                onClickAddLink={(id) => {
-                  setAddingResponseParentId(id);
-                  setNewPhraseInput("");
-                }}
-                onAcceptSuggestion={(parentId, suggText) => {
-                  handleAddPhrase(parentId, suggText);
-                }}
-                onToggleSuggestions={handleToggleSuggestions}
-                onCloseSuggestions={handleCloseSuggestions}
-                onRegenerateSuggestions={handleRegenerateSuggestions}
-                onUpdateNodeText={handleUpdateNodeText}
-                onDeleteNode={handleDeleteNode}
-              />
-            );
-          })}
-        </div>
+            {/* Tree Phrase Node Cards */}
+            {nodes.map((node) => {
+              const depth = getNodeDepth(nodes, node.id);
+              return (
+                <DialogueTreeNodeCard
+                  key={node.id}
+                  node={node}
+                  depth={depth}
+                  isSelected={selectedNodeId === node.id}
+                  isLatest={false}
+                  isSuggestionsOpen={openSuggestionsNodeIds.has(node.id)}
+                  aiSuggestions={suggestionsMap[node.id]}
+                  isGeneratingSuggestions={generatingForNodeId === node.id}
+                  savedWordsMap={savedWordsMap}
+                  userDictionaries={userDictionaries}
+                  zoom={zoom}
+                  zIndex={zIndices[node.id] || 10}
+                  onBringToFront={() => bringToFront(node.id)}
+                  onWordSaved={onWordSaved}
+                  onSelectNode={(id) => setSelectedNodeId(id)}
+                  onClickAddLink={(id) => {
+                    setAddingResponseParentId(id);
+                    setNewPhraseInput("");
+                  }}
+                  onAcceptSuggestion={(parentId, suggText) => {
+                    handleAddPhrase(parentId, suggText);
+                  }}
+                  onToggleSuggestions={handleToggleSuggestions}
+                  onCloseSuggestions={handleCloseSuggestions}
+                  onRegenerateSuggestions={handleRegenerateSuggestions}
+                  onUpdateNodeText={handleUpdateNodeText}
+                  onDeleteNode={handleDeleteNode}
+                />
+              );
+            })}
+          </div>
+        </DndContext>
       </div>
 
       {/* ─── Add Phrase Modal / Dialog ─── */}
@@ -741,6 +901,14 @@ export default function DialogueTreeCanvas({
           </div>
         </div>
       )}
+
+      {/* Dialogue Tree Settings Modal */}
+      <DialogueTreeSettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        tree={tree}
+        onTreeUpdated={onTreeUpdated}
+      />
     </div>
   );
 }

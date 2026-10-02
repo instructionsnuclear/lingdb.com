@@ -485,6 +485,8 @@ export const dialogueTrees = pgTable(
     nodes: jsonb("nodes").$type<DialogueTreeNode[]>().notNull().default([]),
     pan: jsonb("pan").$type<{ x: number; y: number }>().default({ x: 0, y: 0 }),
     zoom: real("zoom").default(1),
+    metaContext: text("meta_context"),
+    level: text("level").default("B1"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
