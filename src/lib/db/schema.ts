@@ -661,6 +661,15 @@ export const dialogueTreesRelations = relations(dialogueTrees, ({ one }) => ({
   }),
 }));
 
+export const siteGlobals = pgTable("site_globals", {
+  id: text("id").primaryKey().default("default"),
+  navLinks: jsonb("nav_links").notNull(),
+  footerLinks: jsonb("footer_links").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 // ─── Type Exports ───────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -690,3 +699,5 @@ export type DictionaryList = typeof dictionaryLists.$inferSelect;
 export type NewDictionaryList = typeof dictionaryLists.$inferInsert;
 export type DialogueTree = typeof dialogueTrees.$inferSelect;
 export type NewDialogueTree = typeof dialogueTrees.$inferInsert;
+export type SiteGlobals = typeof siteGlobals.$inferSelect;
+export type NewSiteGlobals = typeof siteGlobals.$inferInsert;

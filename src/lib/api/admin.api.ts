@@ -31,6 +31,13 @@ export async function updateAdminUserRole(id: string, role: "USER" | "ADMIN") {
   });
 }
 
+export async function updateAdminUserCredits(id: string, aiCredits: number) {
+  return http<unknown>(`/api/admin/users/${id}/credits`, {
+    method: "PATCH",
+    body: { aiCredits },
+  });
+}
+
 export async function deleteModeratedDictionary(id: string) {
   return http<unknown>(`/api/admin/dictionaries/${id}`, { method: "DELETE" });
 }

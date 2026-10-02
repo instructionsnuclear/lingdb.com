@@ -29,9 +29,9 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)]">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-[var(--bg)]">
       <AdminSidebar locale={locale} />
-      <main className="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-12">
+      <main className="flex-1 min-w-0 p-4 sm:p-8 lg:p-12">
         <div className="mx-auto max-w-6xl">
           {children}
         </div>

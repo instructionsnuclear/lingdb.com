@@ -47,6 +47,10 @@ export const qk = {
     blogs: ["admin", "blogs"] as const,
     coupons: ["admin", "coupons"] as const,
     wordle: ["admin", "wordle"] as const,
+    globals: ["admin", "globals"] as const,
+  },
+  globals: {
+    site: ["globals", "site"] as const,
   },
   payment: {
     status: ["payment", "status"] as const,

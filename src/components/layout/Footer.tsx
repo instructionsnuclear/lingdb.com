@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Instagram, Mail } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/tanstack/query-keys";
+import { fetchPublicGlobals } from "@/lib/api/globals.api";
+import { DynamicFooterLink } from "@/lib/constants/globals-defaults";
 import { LEGAL_LINKS } from "@/lib/constants/navigation";
 
 export default function Footer({ locale = "en" }: { locale?: string }) {
@@ -12,8 +16,26 @@ export default function Footer({ locale = "en" }: { locale?: string }) {
   const nt = useTranslations("nav");
   const currentYear = new Date().getFullYear();
 
-  // Hide footer on playground infinite canvas page
-  if (pathname?.includes("/playground")) {
+  const { data: globalsData } = useQuery({
+    queryKey: qk.globals.site,
+    queryFn: fetchPublicGlobals,
+    staleTime: 60_000,
+  });
+
+  const activeFooterLinks: DynamicFooterLink[] = (
+    globalsData?.footerLinks ||
+    LEGAL_LINKS.map((link, idx) => ({
+      id: `foot-${idx}`,
+      href: link.href,
+      labelKey: link.labelKey,
+      category: "legal",
+      enabled: true,
+      order: idx + 1,
+    }))
+  ).filter((link) => link.enabled);
+
+  // Hide footer on playground infinite canvas page or admin panel
+  if (pathname?.includes("/playground") || pathname?.includes("/admin")) {
     return null;
   }
 
@@ -37,21 +59,27 @@ export default function Footer({ locale = "en" }: { locale?: string }) {
             </p>
           </div>
 
-          {/* Column 2: Legal */}
+          {/* Column 2: Legal / Links */}
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-semibold text-[var(--fg)]">
               {nt("legal")}
             </h3>
             <nav className="flex flex-col gap-2">
-              {LEGAL_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={`/${locale}${link.href}`}
-                  className="text-md text-[var(--fg)]/60 transition-colors hover:text-primary-500"
-                >
-                  {t(link.labelKey)}
-                </Link>
-              ))}
+              {activeFooterLinks.map((link) => {
+                const labelText =
+                  link.customLabel ||
+                  (t.has(link.labelKey) ? t(link.labelKey) : link.labelKey);
+
+                return (
+                  <Link
+                    key={link.id || link.href}
+                    href={`/${locale}${link.href}`}
+                    className="text-md text-[var(--fg)]/60 transition-colors hover:text-primary-500"
+                  >
+                    {labelText}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
 

@@ -10,19 +10,67 @@ import Dropdown, { DropdownItem } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/utils/cn";
 import { useTranslations } from "next-intl";
 import { MAIN_NAV_LINKS } from "@/lib/constants/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { qk } from "@/lib/tanstack/query-keys";
+import { fetchPublicGlobals } from "@/lib/api/globals.api";
 import {
   User as UserIcon,
   ShieldCheck,
+  Shield,
   Settings,
   LogOut,
   Coins,
+  LayoutDashboard,
+  Languages,
+  Gamepad2,
+  Library,
+  Trophy,
+  FileText,
+  Puzzle,
+  BookOpen,
+  Layers,
+  GitFork,
+  Globe,
 } from "lucide-react";
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  LayoutDashboard,
+  Languages,
+  Gamepad2,
+  Library,
+  Trophy,
+  FileText,
+  Puzzle,
+  BookOpen,
+  Layers,
+  GitFork,
+  Globe,
+};
+
+import { DynamicNavLink } from "@/lib/constants/globals-defaults";
 
 export default function Header({ locale = "en" }: { locale?: string }) {
   const { user, profile, isLoading, signOut } = useUser();
   const pathname = usePathname();
   const t = useTranslations("common");
   const tNav = useTranslations("nav");
+
+  const { data: globalsData } = useQuery({
+    queryKey: qk.globals.site,
+    queryFn: fetchPublicGlobals,
+    enabled: !pathname?.includes("/admin"),
+    staleTime: 60_000,
+  });
+
+  const activeNavLinks: DynamicNavLink[] = (globalsData?.navLinks || MAIN_NAV_LINKS.map((link, idx) => ({
+    id: `nav-${idx}`,
+    href: link.href,
+    labelKey: link.labelKey,
+    icon: link.labelKey === "dashboard" ? "LayoutDashboard" : link.labelKey === "tools" ? "Languages" : "Gamepad2",
+    authRequired: link.authRequired,
+    enabled: true,
+    order: idx + 1,
+  }))).filter((link) => link.enabled && (!link.authRequired || Boolean(user)));
 
   const isActive = (path: string) => {
     if (path === "tools") {
@@ -34,6 +82,11 @@ export default function Header({ locale = "en" }: { locale?: string }) {
     }
     return pathname.includes(path);
   };
+
+  // Hide header in admin panel (placed after all hooks)
+  if (pathname?.includes("/admin")) {
+    return null;
+  }
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--border-color)] bg-[var(--bg)]/80 backdrop-blur-xl">
@@ -53,43 +106,27 @@ export default function Header({ locale = "en" }: { locale?: string }) {
           </div>
           {/* Desktop Nav */}
           <nav className="hidden items-center gap-1 md:flex">
-            {MAIN_NAV_LINKS.filter((link) => user || !link.authRequired).map(
-              (link) => {
-                const hrefWithLocale = `/${locale}${link.href}`;
-                return (
-                  <Link
-                    key={link.href}
-                    href={hrefWithLocale}
-                    id={
-                      link.href.includes("profile")
-                        ? "profile-nav-link"
-                        : link.href.includes("library")
-                          ? "library-nav-link"
-                          : link.href.includes("tiers")
-                            ? "tiers-nav-link"
-                            : link.href.includes("tools")
-                              ? "tools-nav-link"
-                              : link.href.includes("playground")
-                                ? "playground-nav-link"
-                                : link.href.includes("dialogue-tree")
-                                  ? "dialogue-trees-nav-link"
-                                  : link.href.includes("games")
-                                    ? "games-nav-link"
-                                    : undefined
-                    }
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 text-lg font-medium transition-colors",
-                      isActive(link.href.split("/").pop()!)
-                        ? "rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
-                        : "rounded-lg text-[var(--fg)]/60 hover:bg-[var(--surface)] hover:text-[var(--fg)]",
-                    )}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    {tNav(link.labelKey)}
-                  </Link>
-                );
-              },
-            )}
+            {activeNavLinks.map((link) => {
+              const hrefWithLocale = `/${locale}${link.href}`;
+              const IconComponent = ICON_MAP[link.icon] || Languages;
+              const labelText = link.customLabel || (tNav.has(link.labelKey) ? tNav(link.labelKey) : link.labelKey);
+
+              return (
+                <Link
+                  key={link.id || link.href}
+                  href={hrefWithLocale}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 text-lg font-medium transition-colors",
+                    isActive(link.href.split("/").pop()!)
+                      ? "rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-900/20 dark:text-primary-400"
+                      : "rounded-lg text-[var(--fg)]/60 hover:bg-[var(--surface)] hover:text-[var(--fg)]",
+                  )}
+                >
+                  <IconComponent className="h-4 w-4" />
+                  {labelText}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -136,6 +173,18 @@ export default function Header({ locale = "en" }: { locale?: string }) {
                       <UserIcon className="h-4 w-4" />
                       {tNav("profile")}
                     </DropdownItem>
+                    {profile?.role === "ADMIN" && (
+                      <DropdownItem
+                        onClick={() =>
+                          (window.location.href = `/${locale}/admin/overview`)
+                        }
+                        id="admin-panel-dropdown-item"
+                        className="text-amber-600 dark:text-amber-400 font-semibold"
+                      >
+                        <Shield className="h-4 w-4" />
+                        {tNav("panel")}
+                      </DropdownItem>
+                    )}
                     <DropdownItem
                       onClick={() =>
                         (window.location.href = `/${locale}/payment`)

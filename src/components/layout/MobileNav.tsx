@@ -13,6 +13,7 @@ import {
   LogOut,
   Coins,
   ShieldCheck,
+  Shield,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import gsap from "gsap";
@@ -194,8 +195,8 @@ export default function MobileNav({
                       : "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20",
                   )}
                 >
-                  <ShieldCheck className="h-6 w-6" />
-                  Admin
+                  <Shield className="h-6 w-6" />
+                  {tNav("panel")}
                 </Link>
               )}
             </>

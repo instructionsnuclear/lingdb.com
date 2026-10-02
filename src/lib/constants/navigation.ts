@@ -16,6 +16,7 @@ import {
   Ticket,
   BookOpen,
   GitFork,
+  Globe,
 } from "lucide-react";
 
 export const MAIN_NAV_LINKS = [
@@ -31,24 +32,6 @@ export const MAIN_NAV_LINKS = [
     icon: Languages,
     authRequired: false,
   },
-  // {
-  //   href: "/library",
-  //   labelKey: "library",
-  //   icon: Library,
-  //   authRequired: false,
-  // },
-  // {
-  //   href: "/leaderboards",
-  //   labelKey: "leaderboards",
-  //   icon: Trophy,
-  //   authRequired: false,
-  // },
-  // {
-  //   href: "/blogs",
-  //   labelKey: "blogs",
-  //   icon: FileText,
-  //   authRequired: false,
-  // },
   {
     href: "/games",
     labelKey: "games",
@@ -93,5 +76,10 @@ export const ADMIN_NAV_LINKS = [
     href: "/admin/wordle",
     label: "Wordle",
     icon: Puzzle,
+  },
+  {
+    href: "/admin/globals",
+    label: "Globals",
+    icon: Globe,
   },
 ];
