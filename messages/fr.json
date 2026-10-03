@@ -776,7 +776,9 @@
     "inDictionaryTooltip": "Dans le dictionnaire : « {dict} » ({translation})",
     "clickToSaveTooltip": "Cliquer pour enregistrer « {word} » dans le dictionnaire",
     "saveWordTo": "Enregistrer le mot dans le dictionnaire :",
-    "savingWord": "Traduction & enregistrement..."
+    "savingWord": "Traduction & enregistrement...",
+    "pronouncePhrase": "Prononcer la phrase",
+    "speechNotSupported": "La synthèse vocale n'est pas prise en charge par votre navigateur."
   },
   "tools": {
     "pageTitle": "Outils de Pratique Linguistique",

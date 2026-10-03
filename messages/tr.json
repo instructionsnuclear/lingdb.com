@@ -756,7 +756,9 @@
     "inDictionaryTooltip": "Sözlükte mevcut: \"{dict}\" ({translation})",
     "clickToSaveTooltip": "\"{word}\" kelimesini sözlüğe kaydetmek için tıklayın",
     "saveWordTo": "Kelimeyi sözlüğe kaydet:",
-    "savingWord": "Çevriliyor ve kaydediliyor..."
+    "savingWord": "Çevriliyor ve kaydediliyor...",
+    "pronouncePhrase": "Cümleyi seslendir",
+    "speechNotSupported": "Tarayıcınızda ses sentezi desteklenmiyor."
   },
   "tools": {
     "pageTitle": "Dil Pratik Araçları",

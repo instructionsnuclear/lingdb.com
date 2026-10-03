@@ -776,7 +776,9 @@
     "inDictionaryTooltip": "Im Wörterbuch: „{dict}“ ({translation})",
     "clickToSaveTooltip": "Klicken, um „{word}“ im Wörterbuch zu speichern",
     "saveWordTo": "Wort im Wörterbuch speichern:",
-    "savingWord": "Wird übersetzt & gespeichert..."
+    "savingWord": "Wird übersetzt & gespeichert...",
+    "pronouncePhrase": "Satz vorlesen",
+    "speechNotSupported": "Sprachausgabe wird von Ihrem Browser nicht unterstützt."
   },
   "tools": {
     "pageTitle": "Sprachpraxis-Werkzeuge",

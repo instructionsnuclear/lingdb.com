@@ -28,6 +28,7 @@ import {
   X,
   Settings,
   Sparkles,
+  Volume2,
 } from "lucide-react";
 import type { DialogueTree, DialogueTreeNode, Word } from "@/lib/db/schema";
 import DialogueTreeNodeCard from "./DialogueTreeNodeCard";
@@ -150,6 +151,61 @@ export default function DialogueTreeCanvas({
 
   // Dialogue Tree Settings Modal state
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Text-to-speech voice playback for phrases
+  const [speakingText, setSpeakingText] = useState<string | null>(null);
+
+  const handleSpeak = useCallback(
+    (text: string) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+        toast(t("speechNotSupported"), "info");
+        return;
+      }
+
+      // If already speaking this phrase, cancel it
+      if (window.speechSynthesis.speaking && speakingText === text) {
+        window.speechSynthesis.cancel();
+        setSpeakingText(null);
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const langMap: Record<string, string> = {
+        de: "de-DE",
+        es: "es-ES",
+        fr: "fr-FR",
+        en: "en-US",
+        tr: "tr-TR",
+      };
+      utterance.lang =
+        (tree.language && langMap[tree.language]) || tree.language || "en-US";
+      utterance.rate = 0.9;
+
+      utterance.onstart = () => {
+        setSpeakingText(text);
+      };
+      utterance.onend = () => {
+        setSpeakingText(null);
+      };
+      utterance.onerror = () => {
+        setSpeakingText(null);
+      };
+
+      setSpeakingText(text);
+      window.speechSynthesis.speak(utterance);
+    },
+    [tree.language, speakingText, t, toast],
+  );
+
+  // Stop any ongoing speech when unmounting
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   // ─── Drag & Drop (like Playground canvas) ──────────────────────────────────
   const [zIndices, setZIndices] = useState<Record<string, number>>({});
@@ -787,6 +843,8 @@ export default function DialogueTreeCanvas({
                   userDictionaries={userDictionaries}
                   zoom={zoom}
                   zIndex={zIndices[node.id] || 10}
+                  speakingText={speakingText}
+                  onSpeak={handleSpeak}
                   onBringToFront={() => bringToFront(node.id)}
                   onWordSaved={onWordSaved}
                   onSelectNode={(id) => setSelectedNodeId(id)}
@@ -847,9 +905,31 @@ export default function DialogueTreeCanvas({
             {/* Parent phrase context reference */}
             {activeParentNode && (
               <div className="mb-4 p-3 rounded-2xl bg-[var(--bg)]/70 border border-[var(--border-color)]/60">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--fg)]/50 block mb-1">
-                  {t("respondingTo")}
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--fg)]/50 block">
+                    {t("respondingTo")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleSpeak(activeParentNode.text)}
+                    className={cn(
+                      "p-1 rounded-lg transition-all active:scale-90 cursor-pointer",
+                      speakingText === activeParentNode.text
+                        ? "text-primary-500 bg-primary-500/15"
+                        : "text-[var(--fg)]/40 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
+                    )}
+                    title={t("pronouncePhrase")}
+                    aria-label={t("pronouncePhrase")}
+                  >
+                    <Volume2
+                      className={cn(
+                        "w-3.5 h-3.5",
+                        speakingText === activeParentNode.text &&
+                          "animate-pulse text-primary-500",
+                      )}
+                    />
+                  </button>
+                </div>
                 <p className="text-sm font-semibold text-[var(--fg)]/90 italic">
                   &quot;{activeParentNode.text}&quot;
                 </p>

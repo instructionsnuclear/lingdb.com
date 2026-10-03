@@ -776,7 +776,9 @@
     "inDictionaryTooltip": "En el diccionario: «{dict}» ({translation})",
     "clickToSaveTooltip": "Haz clic para guardar «{word}» en el diccionario",
     "saveWordTo": "Guardar palabra en el diccionario:",
-    "savingWord": "Traduciendo y guardando..."
+    "savingWord": "Traduciendo y guardando...",
+    "pronouncePhrase": "Pronunciar frase",
+    "speechNotSupported": "La síntesis de voz no es compatible con su navegador."
   },
   "tools": {
     "pageTitle": "Herramientas de Práctica",

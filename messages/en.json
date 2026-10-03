@@ -776,7 +776,9 @@
     "inDictionaryTooltip": "In dictionary: \"{dict}\" ({translation})",
     "clickToSaveTooltip": "Click to save \"{word}\" to dictionary",
     "saveWordTo": "Save word to dictionary:",
-    "savingWord": "Translating & saving..."
+    "savingWord": "Translating & saving...",
+    "pronouncePhrase": "Pronounce phrase",
+    "speechNotSupported": "Speech synthesis not supported in your browser."
   },
   "tools": {
     "pageTitle": "Language Practice Tools",

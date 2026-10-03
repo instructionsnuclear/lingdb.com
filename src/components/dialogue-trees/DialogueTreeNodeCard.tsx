@@ -3,6 +3,7 @@
 import { memo, useState, useEffect } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import {
+  Volume2,
   Sparkles,
   Plus,
   Trash2,
@@ -34,6 +35,8 @@ interface DialogueTreeNodeCardProps {
   userDictionaries: UserDictionaryMeta[];
   zoom?: number;
   zIndex?: number;
+  speakingText?: string | null;
+  onSpeak?: (text: string) => void;
   onBringToFront?: () => void;
   onWordSaved: (word: Word, dictTitle: string) => void;
   onSelectNode: (nodeId: string) => void;
@@ -58,6 +61,8 @@ function DialogueTreeNodeCard({
   userDictionaries,
   zoom = 1,
   zIndex = 10,
+  speakingText,
+  onSpeak,
   onBringToFront,
   onWordSaved,
   onSelectNode,
@@ -180,12 +185,36 @@ function DialogueTreeNodeCard({
               )}
             </div>
 
-            {/* Top Action Icons: Sparkles (AI ideas), Pencil (edit phrase), Trash (delete) */}
+            {/* Top Action Icons: Listen (pronounce), Sparkles (AI ideas), Pencil (edit phrase), Trash (delete) */}
             <div
               className="flex items-center gap-1 shrink-0"
               onPointerDown={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
+              {onSpeak && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSpeak(node.text);
+                  }}
+                  title={t("pronouncePhrase")}
+                  aria-label={t("pronouncePhrase")}
+                  className={cn(
+                    "p-1 rounded-lg transition-all active:scale-90 cursor-pointer",
+                    speakingText === node.text
+                      ? "text-primary-500 bg-primary-500/15 ring-1 ring-primary-500/30"
+                      : "text-[var(--fg)]/40 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
+                  )}
+                >
+                  <Volume2
+                    className={cn(
+                      "w-3.5 h-3.5",
+                      speakingText === node.text && "animate-pulse text-primary-500",
+                    )}
+                  />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
@@ -372,17 +401,54 @@ function DialogueTreeNodeCard({
               ) : (
                 <div className="space-y-1.5">
                   {aiSuggestions?.map((sugg, i) => (
-                    <button
+                    <div
                       key={i}
-                      type="button"
-                      onClick={() => onAcceptSuggestion(node.id, sugg)}
-                      className="w-full text-left p-2.5 rounded-xl border border-[var(--border-color)] hover:border-primary-500/60 bg-[var(--bg)]/60 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-all text-xs text-[var(--fg)] font-medium flex items-center justify-between gap-2 group/sugg cursor-pointer shadow-sm"
+                      className="group/sugg w-full p-2.5 rounded-xl border border-[var(--border-color)] hover:border-primary-500/60 bg-[var(--bg)]/60 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-all text-xs text-[var(--fg)] font-medium flex items-center justify-between gap-2 shadow-sm"
                     >
-                      <span className="leading-snug">{sugg}</span>
-                      <span className="shrink-0 w-5 h-5 rounded-full bg-primary-500/10 group-hover/sugg:bg-primary-500 group-hover/sugg:text-white text-primary-600 dark:text-primary-300 flex items-center justify-center transition-colors">
-                        <Plus className="w-3 h-3" />
-                      </span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => onAcceptSuggestion(node.id, sugg)}
+                        className="flex-1 text-left leading-snug cursor-pointer"
+                      >
+                        {sugg}
+                      </button>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {onSpeak && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSpeak(sugg);
+                            }}
+                            title={t("pronouncePhrase")}
+                            aria-label={t("pronouncePhrase")}
+                            className={cn(
+                              "p-1 rounded-lg transition-all active:scale-90 cursor-pointer",
+                              speakingText === sugg
+                                ? "text-primary-500 bg-primary-500/15"
+                                : "text-[var(--fg)]/40 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
+                            )}
+                          >
+                            <Volume2
+                              className={cn(
+                                "w-3.5 h-3.5",
+                                speakingText === sugg && "animate-pulse text-primary-500",
+                              )}
+                            />
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => onAcceptSuggestion(node.id, sugg)}
+                          title={t("addResponseTooltip")}
+                          className="w-5 h-5 rounded-full bg-primary-500/10 group-hover/sugg:bg-primary-500 group-hover/sugg:text-white text-primary-600 dark:text-primary-300 flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}

@@ -84,7 +84,8 @@ Interactive branching conversation builder helping learners discover dialogue co
 ### Architecture & Components
 - **Page Route**: `/[locale]/dialogue-trees`
 - **Canvas (`DialogueTreeCanvas.tsx`)**: Infinite pan & zoom canvas (centered focal mouse-wheel zoom, spacebar/middle-click drag, dot grid background, auto-layout, dnd-kit draggable node context with scale compensation).
-- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), header drag handle (`GripVertical`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
+- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), header drag handle (`GripVertical`), audio pronunciation icon button (`Volume2`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
+- **Audio Pronunciation (`speechSynthesis`)**: Consistent with the Playground, nodes and generated AI suggestion phrases feature audio pronunciation buttons (`Volume2`) using Web Speech API synthesis configured with the tree's target language (e.g. `de-DE`, `es-ES`, `fr-FR`, `en-US`, `tr-TR`) with active pulse animations and cancellation handling.
 - **Connections (`DialogueTreeConnections.tsx`) & Smart Routing (`smart-arrow.ts`)**: Procedural, obstacle-aware cubic Bezier paths that dynamically recalculate in real-time as phrase blocks move in 2D space. Clean, crisp curves without glow or arrowheads flush to card boundaries.
 - **Link Handles**: Hoverable/clickable right-side arrow handle with `+` icon on every card to branch out custom responses infinitely. Anchored directly to the phrase card's vertical center.
 - **AI Continuation Engine (`/api/dialogue-trees/suggest`)**:
