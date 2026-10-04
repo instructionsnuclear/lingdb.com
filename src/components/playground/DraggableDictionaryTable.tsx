@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
   GripVertical,
   Plus,
+  Trash2,
   Check,
   Loader2,
   X,
@@ -26,6 +28,7 @@ interface DraggableDictionaryTableProps {
   onToggleWord: (word: Word, dictionary: PlaygroundDictionary) => void;
   onWordAdded: (dictionaryId: string, newWord: Word) => void;
   onBringToFront: () => void;
+  onRemoveDictionary?: (dictionaryId: string) => void;
 }
 
 export default function DraggableDictionaryTable({
@@ -37,7 +40,9 @@ export default function DraggableDictionaryTable({
   onToggleWord,
   onWordAdded,
   onBringToFront,
+  onRemoveDictionary,
 }: DraggableDictionaryTableProps) {
+  const t = useTranslations("playground");
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: dictionary.id,
@@ -138,7 +143,7 @@ export default function DraggableDictionaryTable({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs text-[var(--fg)]/60 font-medium mr-1">
+          <span className="text-xs text-[var(--fg)]/60 font-medium mr-0.5">
             {dictionary.words.length}
           </span>
           <button
@@ -155,9 +160,32 @@ export default function DraggableDictionaryTable({
                 : "bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-500/20",
             )}
             title="Add word to this dictionary"
+            aria-label="Add word"
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
+
+          {onRemoveDictionary && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (
+                  confirm(
+                    t("remove_dictionary_confirm", { title: dictionary.title }),
+                  )
+                ) {
+                  onRemoveDictionary(dictionary.id);
+                }
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              className="p-1.5 rounded-lg text-xs font-medium text-[var(--fg)]/40 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+              title={t("remove_dictionary")}
+              aria-label={t("remove_dictionary")}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

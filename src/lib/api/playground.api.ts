@@ -53,6 +53,21 @@ export async function deleteDictionaryList(id: string) {
   });
 }
 
+export async function updateDictionaryList(
+  id: string,
+  payload: {
+    title?: string;
+    dictionaryIds?: string[];
+    positions?: Record<string, { x: number; y: number }>;
+    savedPhrases?: SavedPlaygroundPhrase[];
+  },
+) {
+  return http<{ list: DictionaryList }>(`/api/dictionary-lists/${id}`, {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
 export async function updateDictionaryListPositions(
   id: string,
   positions: Record<string, { x: number; y: number }>,

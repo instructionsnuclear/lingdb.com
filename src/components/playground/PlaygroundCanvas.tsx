@@ -20,9 +20,13 @@ import {
   ZoomIn,
   ZoomOut,
   Bookmark,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import DraggableDictionaryTable from "./DraggableDictionaryTable";
+import AddDictionaryModal, {
+  type UserDictionarySummary,
+} from "./AddDictionaryModal";
 import {
   type PlaygroundDictionary,
   type SavedPlaygroundPhrase,
@@ -44,6 +48,9 @@ interface PlaygroundCanvasProps {
   onWordAdded: (dictionaryId: string, newWord: Word) => void;
   onOpenPackSelector: () => void;
   onPositionsUpdated?: (positions: Record<string, { x: number; y: number }>) => void;
+  userDictionaries?: UserDictionarySummary[];
+  onAddDictionaries?: (selectedIds: string[]) => Promise<void> | void;
+  onRemoveDictionary?: (dictionaryId: string) => void;
 }
 
 export default function PlaygroundCanvas({
@@ -60,8 +67,12 @@ export default function PlaygroundCanvas({
   onWordAdded,
   onOpenPackSelector,
   onPositionsUpdated,
+  userDictionaries,
+  onAddDictionaries,
+  onRemoveDictionary,
 }: PlaygroundCanvasProps) {
   const t = useTranslations("playground");
+  const [isAddDictModalOpen, setIsAddDictModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -538,12 +549,25 @@ export default function PlaygroundCanvas({
             <button
               type="button"
               onClick={handleResetPositions}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors active:scale-95"
               title={t("reset_layout")}
             >
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{t("reset_layout")}</span>
             </button>
+
+            {/* Add Dictionary Button (right next to Yerleşimi Sıfırla) */}
+            {onAddDictionaries && userDictionaries && (
+              <button
+                type="button"
+                onClick={() => setIsAddDictModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors active:scale-95"
+                title={t("add_dictionary")}
+              >
+                <Plus className="h-3.5 w-3.5 text-primary-500" />
+                <span className="hidden sm:inline">{t("add_dictionary")}</span>
+              </button>
+            )}
 
             {/* Saved Phrases Toggle Button */}
             <button
@@ -629,6 +653,7 @@ export default function PlaygroundCanvas({
                     onToggleWord={onToggleWord}
                     onWordAdded={onWordAdded}
                     onBringToFront={() => bringToFront(dict.id)}
+                    onRemoveDictionary={onRemoveDictionary}
                   />
                 );
               })}
@@ -673,6 +698,18 @@ export default function PlaygroundCanvas({
           <ZoomIn className="h-4 w-4" />
         </button>
       </div>
+
+      {/* Add Dictionary to Playground Modal */}
+      {onAddDictionaries && userDictionaries && (
+        <AddDictionaryModal
+          isOpen={isAddDictModalOpen}
+          onClose={() => setIsAddDictModalOpen(false)}
+          availableDictionaries={userDictionaries}
+          existingDictionaryIds={dictionaries.map((d) => d.id)}
+          currentLanguage={language}
+          onAddDictionaries={onAddDictionaries}
+        />
+      )}
     </div>
   );
 }

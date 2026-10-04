@@ -22,6 +22,7 @@ import SavedPhrasesSidePanel from "./SavedPhrasesSidePanel";
 import {
   getPlaygroundDictionaries,
   generatePlaygroundPhrases,
+  updateDictionaryList,
   updateDictionaryListSavedPhrases,
   type EnrichedDictionaryList,
   type PlaygroundDictionary,
@@ -335,6 +336,211 @@ export default function PlaygroundClient({
     [queryClient],
   );
 
+  // Add existing dictionaries to active playground
+  const handleAddDictionaries = useCallback(
+    async (dictionaryIdsToAdd: string[]) => {
+      if (!activePack || dictionaryIdsToAdd.length === 0) return;
+
+      const uniqueToAdd = dictionaryIdsToAdd.filter(
+        (id) => !activePack.dictionaryIds.includes(id),
+      );
+      if (uniqueToAdd.length === 0) return;
+
+      const nextDictionaryIds = [...activePack.dictionaryIds, ...uniqueToAdd];
+
+      // Stagger new card positions on canvas
+      const cardWidth = 380;
+      const cardHeight = 360;
+      const gap = 32;
+      const startX = 64;
+      const startY = 48;
+
+      const nextPositions: Record<string, { x: number; y: number }> = {
+        ...(activePack.positions || {}),
+      };
+
+      const currentTotal = activePack.dictionaryIds.length;
+      uniqueToAdd.forEach((dictId, idx) => {
+        const slotIndex = currentTotal + idx;
+        const col = slotIndex % 3;
+        const row = Math.floor(slotIndex / 3);
+        nextPositions[dictId] = {
+          x: startX + col * (cardWidth + gap),
+          y: startY + row * (cardHeight + gap),
+        };
+      });
+
+      // Synchronize localStorage position cache immediately
+      if (activePack.id && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            `lingdb_playground_positions_${activePack.id}`,
+            JSON.stringify(nextPositions),
+          );
+        } catch {}
+      }
+
+      // Optimistically fetch new dictionaries so words load seamlessly
+      try {
+        const newDictsRes = await getPlaygroundDictionaries(uniqueToAdd);
+        if (newDictsRes?.dictionaries) {
+          setCanvasDictionaries((prev) => {
+            const existingIds = new Set(prev.map((d) => d.id));
+            const fresh = newDictsRes.dictionaries.filter(
+              (d) => !existingIds.has(d.id),
+            );
+            return [...prev, ...fresh];
+          });
+        }
+      } catch (err) {
+        console.warn("Could not pre-fetch newly added dictionaries:", err);
+      }
+
+      // Update active pack in state
+      setActivePack((prev) =>
+        prev
+          ? {
+              ...prev,
+              dictionaryIds: nextDictionaryIds,
+              positions: nextPositions,
+            }
+          : null,
+      );
+
+      // If active pack is a saved pack, persist to database
+      if (activePack.id) {
+        const addedDictMeta = initialUserDictionaries
+          .filter((d) => uniqueToAdd.includes(d.id))
+          .map((d) => ({ id: d.id, title: d.title, language: d.language }));
+
+        setSavedPacks((prev) =>
+          prev.map((p) => {
+            if (p.id === activePack.id) {
+              const updatedDicts = [
+                ...(p.dictionaries || []),
+                ...addedDictMeta.filter(
+                  (meta) => !p.dictionaries?.some((d) => d.id === meta.id),
+                ),
+              ];
+              return {
+                ...p,
+                dictionaryIds: nextDictionaryIds,
+                positions: nextPositions,
+                dictionaries: updatedDicts,
+                dictionaryCount: updatedDicts.length,
+              };
+            }
+            return p;
+          }),
+        );
+
+        try {
+          await updateDictionaryList(activePack.id, {
+            dictionaryIds: nextDictionaryIds,
+            positions: nextPositions,
+          });
+          queryClient.invalidateQueries({
+            queryKey: qk.playground.lists,
+          });
+        } catch (err) {
+          console.error("Failed to update dictionary pack in database:", err);
+          toast("Failed to save changes to server", "error");
+        }
+      }
+
+      toast(t("dictionaries_added_success"), "success");
+    },
+    [activePack, initialUserDictionaries, queryClient, t, toast],
+  );
+
+  // Remove dictionary from active playground
+  const handleRemoveDictionary = useCallback(
+    async (dictionaryIdToRemove: string) => {
+      if (!activePack) return;
+
+      if (activePack.dictionaryIds.length <= 1) {
+        toast(t("min_one_dictionary_warning"), "warning");
+        return;
+      }
+
+      const nextDictionaryIds = activePack.dictionaryIds.filter(
+        (id) => id !== dictionaryIdToRemove,
+      );
+
+      // Clean up position record for removed dictionary
+      const nextPositions = { ...(activePack.positions || {}) };
+      delete nextPositions[dictionaryIdToRemove];
+
+      // Clean up localStorage position cache
+      if (activePack.id && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            `lingdb_playground_positions_${activePack.id}`,
+            JSON.stringify(nextPositions),
+          );
+        } catch {}
+      }
+
+      // Remove from canvas immediately
+      setCanvasDictionaries((prev) =>
+        prev.filter((d) => d.id !== dictionaryIdToRemove),
+      );
+
+      // Remove any selected words belonging to this dictionary in bottom dock
+      setSelectedWords((prev) =>
+        prev.filter((w) => w.dictionaryId !== dictionaryIdToRemove),
+      );
+
+      // Update active pack state
+      setActivePack((prev) =>
+        prev
+          ? {
+              ...prev,
+              dictionaryIds: nextDictionaryIds,
+              positions: nextPositions,
+            }
+          : null,
+      );
+
+      // Persist to database if saved pack
+      if (activePack.id) {
+        setSavedPacks((prev) =>
+          prev.map((p) => {
+            if (p.id === activePack.id) {
+              const updatedDicts = (p.dictionaries || []).filter(
+                (d) => d.id !== dictionaryIdToRemove,
+              );
+              return {
+                ...p,
+                dictionaryIds: nextDictionaryIds,
+                positions: nextPositions,
+                dictionaries: updatedDicts,
+                dictionaryCount: updatedDicts.length,
+              };
+            }
+            return p;
+          }),
+        );
+
+        try {
+          await updateDictionaryList(activePack.id, {
+            dictionaryIds: nextDictionaryIds,
+            positions: nextPositions,
+          });
+          queryClient.invalidateQueries({
+            queryKey: qk.playground.lists,
+          });
+        } catch (err) {
+          console.error("Failed to remove dictionary from pack in database:", err);
+          toast("Failed to save changes to server", "error");
+        }
+      }
+
+      toast(t("dictionary_removed_success"), "info");
+    },
+    [activePack, queryClient, t, toast],
+  );
+
   // Generate AI phrases using selected words
   const handleGeneratePhrases = async () => {
     if (selectedWords.length === 0 || !activePack) return;
@@ -458,6 +664,9 @@ export default function PlaygroundClient({
         onWordAdded={handleWordAdded}
         onOpenPackSelector={() => setActivePack(null)}
         onPositionsUpdated={handlePositionsUpdated}
+        userDictionaries={initialUserDictionaries}
+        onAddDictionaries={handleAddDictionaries}
+        onRemoveDictionary={handleRemoveDictionary}
       />
 
       {/* Bottom Dock with Selected Words & AI Phrase Generation */}
