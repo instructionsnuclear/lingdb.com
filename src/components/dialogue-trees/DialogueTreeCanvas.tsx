@@ -29,7 +29,11 @@ import {
   Settings,
   Sparkles,
   Volume2,
+  Search,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
+import gsap from "gsap";
 import type { DialogueTree, DialogueTreeNode, Word } from "@/lib/db/schema";
 import DialogueTreeNodeCard from "./DialogueTreeNodeCard";
 import DialogueTreeConnections from "./DialogueTreeConnections";
@@ -125,6 +129,19 @@ export default function DialogueTreeCanvas({
     startPanX: number;
     startPanY: number;
   } | null>(null);
+
+  // Search Phrases State & Smooth Camera Navigation
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const cameraTweenRef = useRef<gsap.core.Tween | null>(null);
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const panRef = useRef(pan);
+  panRef.current = pan;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
 
   // Auto-save debounce state
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
@@ -590,6 +607,187 @@ export default function DialogueTreeCanvas({
     triggerAutoSave(nodes, { x: 40, y: 40 }, 1);
   }, [nodes, triggerAutoSave]);
 
+  // ─── Search Phrases & Smooth Camera Navigation ──────────────────────────
+  const matchingNodes = useMemo(() => {
+    const trimmed = searchQuery.trim().toLowerCase();
+    if (!trimmed) return [];
+    return nodes.filter((node) => {
+      const matchText = node.text.toLowerCase().includes(trimmed);
+      const matchTranslation = node.translation?.toLowerCase().includes(trimmed);
+      return matchText || matchTranslation;
+    });
+  }, [nodes, searchQuery]);
+
+  const focusNodeSmoothly = useCallback(
+    (targetNode: DialogueTreeNode) => {
+      const viewport = viewportRef.current;
+      if (!viewport) return;
+
+      const rect = viewport.getBoundingClientRect();
+      const currentZoom = zoomRef.current;
+      // Target center of node in viewport center (node card is 310px wide, ~130px tall)
+      const targetPanX = Math.round(rect.width / 2 - (targetNode.x + 155) * currentZoom);
+      const targetPanY = Math.round(rect.height / 2 - (targetNode.y + 65) * currentZoom);
+
+      if (cameraTweenRef.current) {
+        cameraTweenRef.current.kill();
+      }
+
+      const panProxy = { x: panRef.current.x, y: panRef.current.y };
+      cameraTweenRef.current = gsap.to(panProxy, {
+        x: targetPanX,
+        y: targetPanY,
+        duration: 0.75,
+        ease: "power2.out",
+        onUpdate: () => {
+          setPan({
+            x: Math.round(panProxy.x),
+            y: Math.round(panProxy.y),
+          });
+        },
+        onComplete: () => {
+          setPan({ x: targetPanX, y: targetPanY });
+          cameraTweenRef.current = null;
+        },
+      });
+
+      // 1-second highlight animation
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+      setHighlightedNodeId(targetNode.id);
+      setSelectedNodeId(targetNode.id);
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightedNodeId(null);
+        highlightTimeoutRef.current = null;
+      }, 1000);
+    },
+    [],
+  );
+
+  const handleToggleSearch = useCallback(() => {
+    setIsSearchOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }, 50);
+      } else {
+        setSearchQuery("");
+        setHighlightedNodeId(null);
+        setCurrentMatchIndex(0);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleCloseSearch = useCallback(() => {
+    setIsSearchOpen(false);
+    setSearchQuery("");
+    setHighlightedNodeId(null);
+    setCurrentMatchIndex(0);
+  }, []);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      setCurrentMatchIndex(0);
+      const trimmed = value.trim().toLowerCase();
+      if (!trimmed) {
+        setHighlightedNodeId(null);
+        return;
+      }
+      const matched = nodes.filter((node) => {
+        const matchText = node.text.toLowerCase().includes(trimmed);
+        const matchTranslation = node.translation?.toLowerCase().includes(trimmed);
+        return matchText || matchTranslation;
+      });
+      if (matched.length > 0) {
+        focusNodeSmoothly(matched[0]);
+      } else {
+        setHighlightedNodeId(null);
+      }
+    },
+    [nodes, focusNodeSmoothly],
+  );
+
+  const handleNavigateMatch = useCallback(
+    (direction: 1 | -1) => {
+      if (matchingNodes.length === 0) return;
+      const nextIndex =
+        (currentMatchIndex + direction + matchingNodes.length) %
+        matchingNodes.length;
+      setCurrentMatchIndex(nextIndex);
+      focusNodeSmoothly(matchingNodes[nextIndex]);
+    },
+    [matchingNodes, currentMatchIndex, focusNodeSmoothly],
+  );
+
+  const handleSearchInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Tab") {
+      e.preventDefault();
+      if (matchingNodes.length > 0) {
+        handleNavigateMatch(e.shiftKey ? -1 : 1);
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (matchingNodes.length > 0) {
+        handleNavigateMatch(e.shiftKey ? -1 : 1);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCloseSearch();
+    }
+  };
+
+  // Keyboard Shortcuts: Ctrl+F to open search, Tab / Shift+Tab to cycle matching phrases
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+        setTimeout(() => {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        }, 50);
+        return;
+      }
+
+      if (isSearchOpen && matchingNodes.length > 0 && e.key === "Tab") {
+        const target = e.target as HTMLElement | null;
+        if (target === searchInputRef.current) {
+          return;
+        }
+        if (
+          target?.tagName === "TEXTAREA" ||
+          (target?.tagName === "INPUT" && target !== searchInputRef.current)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        handleNavigateMatch(e.shiftKey ? -1 : 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSearchOpen, matchingNodes, handleNavigateMatch]);
+
+  // Clean up GSAP tweens and highlight timer on unmount
+  useEffect(() => {
+    return () => {
+      if (cameraTweenRef.current) {
+        cameraTweenRef.current.kill();
+      }
+      if (highlightTimeoutRef.current) {
+        clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // ─── Mouse Wheel Focal Zoom (centered at cursor) ───────────────────────────
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -735,63 +933,162 @@ export default function DialogueTreeCanvas({
   return (
     <div className="relative w-full h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden select-none bg-[var(--bg)]">
       {/* ─── Floating Top Controls Bar ─── */}
-      <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none flex items-center justify-between gap-4">
-        {/* Left Side: Back button + Tree Title + Language badge */}
-        <div className="pointer-events-auto flex items-center gap-3 bg-[var(--surface)]/90 backdrop-blur-xl border border-[var(--border-color)] px-4 py-2.5 rounded-2xl shadow-xl">
-          <button
-            type="button"
-            onClick={onBackToSelector}
-            className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70 hover:text-primary-500 transition-colors p-1 -ml-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/40"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{t("backToTrees")}</span>
-          </button>
-
-          <div className="h-4 w-px bg-[var(--border-color)]" />
-
-          <div className="flex items-center gap-2">
-            <Workflow className="w-4 h-4 text-primary-500" />
-            <span className="font-bold text-sm tracking-tight text-[var(--fg)] truncate max-w-[160px] sm:max-w-xs">
-              {tree.title}
-            </span>
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold border border-primary-500/20">
-              {tree.language}
-            </span>
-            <span
-              title={t("levelLabel")}
-              className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border border-violet-500/20"
+      <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none flex items-center justify-between gap-3">
+        {/* Left Side: Back button + Tree Title + Language badge + Settings & Search */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="pointer-events-auto flex items-center gap-3 bg-[var(--surface)]/90 backdrop-blur-xl border border-[var(--border-color)] px-4 py-2.5 rounded-2xl shadow-xl">
+            <button
+              type="button"
+              onClick={onBackToSelector}
+              className="flex items-center gap-1.5 text-xs font-semibold text-[var(--fg)]/70 hover:text-primary-500 transition-colors p-1 -ml-1 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-950/40"
             >
-              {tree.level || "B1"}
-            </span>
-            {tree.metaContext && (
+              <ArrowLeft className="w-4 h-4" />
+              <span>{t("backToTrees")}</span>
+            </button>
+
+            <div className="h-4 w-px bg-[var(--border-color)]" />
+
+            <div className="flex items-center gap-2">
+              <Workflow className="w-4 h-4 text-primary-500" />
+              <span className="font-bold text-sm tracking-tight text-[var(--fg)] truncate max-w-[160px] sm:max-w-xs">
+                {tree.title}
+              </span>
+              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-950/60 text-primary-600 dark:text-primary-400 font-bold border border-primary-500/20">
+                {tree.language}
+              </span>
+              <span
+                title={t("levelLabel")}
+                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border border-violet-500/20"
+              >
+                {tree.level || "B1"}
+              </span>
+              {tree.metaContext && (
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  title={t("metaContextActive")}
+                  className="hidden md:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span className="truncate max-w-[130px]">{t("metaContextActive")}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="hidden sm:flex items-center gap-1.5 ml-2 text-xs text-[var(--fg)]/60">
+              <span>•</span>
+              <span>{t("nodeCount", { count: nodes.length })}</span>
+            </div>
+
+            <div className="h-4 w-px bg-[var(--border-color)]" />
+
+            {/* Tree Settings Gear Button */}
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(true)}
+              title={t("treeSettings")}
+              className="p-1.5 rounded-xl text-[var(--fg)]/70 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+            {/* Search Phrases Button */}
+            <button
+              type="button"
+              onClick={handleToggleSearch}
+              title={t("searchPhrases")}
+              className={cn(
+                "p-1.5 rounded-xl transition-colors cursor-pointer",
+                isSearchOpen
+                  ? "text-primary-500 bg-primary-50 dark:bg-primary-950/40 ring-1 ring-primary-500/30"
+                  : "text-[var(--fg)]/70 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40",
+              )}
+            >
+              <Search className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Search Phrases Floating Pill (opened when search icon is clicked) */}
+          {isSearchOpen && (
+            <div
+              data-no-canvas-zoom
+              className="pointer-events-auto flex items-center gap-2 bg-[var(--surface)]/95 backdrop-blur-2xl border border-primary-500/40 px-3 py-1.5 rounded-2xl shadow-xl animate-in fade-in slide-in-from-left-2 duration-150"
+            >
+              <Search className="w-3.5 h-3.5 text-primary-500 shrink-0" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onKeyDown={handleSearchInputKeyDown}
+                placeholder={t("searchPhrasesPlaceholder")}
+                className="w-36 sm:w-52 text-xs bg-transparent text-[var(--fg)] placeholder:text-[var(--fg)]/40 focus:outline-none font-medium"
+                autoFocus
+              />
+
+              {searchQuery.trim() && (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {matchingNodes.length > 0 ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-mono font-bold text-primary-600 dark:text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        {currentMatchIndex + 1}/{matchingNodes.length}
+                      </span>
+                      <kbd
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono font-bold text-[var(--fg)]/75 bg-[var(--fg)]/10 dark:bg-[var(--fg)]/15 border border-[var(--border-color)] rounded shadow-xs select-none"
+                        title={t("tabToSwitchResults")}
+                      >
+                        <span>TAB</span>
+                        <span className="text-[8px] opacity-70">⇥</span>
+                      </kbd>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] font-medium text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                      {t("searchNoMatches")}
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={matchingNodes.length <= 1}
+                    onClick={() => handleNavigateMatch(-1)}
+                    title={t("prevMatch")}
+                    className="p-1 rounded-lg text-[var(--fg)]/60 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={matchingNodes.length <= 1}
+                    onClick={() => handleNavigateMatch(1)}
+                    title={t("nextMatch")}
+                    className="p-1 rounded-lg text-[var(--fg)]/60 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Show kbd TAB hint if search input is empty so user knows beforehand */}
+              {!searchQuery.trim() && (
+                <kbd
+                  className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono font-bold text-[var(--fg)]/50 bg-[var(--fg)]/5 border border-[var(--border-color)]/60 rounded shadow-xs select-none"
+                  title={t("tabToSwitchResults")}
+                >
+                  <span>TAB</span>
+                  <span className="text-[8px] opacity-70">⇥</span>
+                </kbd>
+              )}
+
               <button
                 type="button"
-                onClick={() => setIsSettingsOpen(true)}
-                title={t("metaContextActive")}
-                className="hidden md:inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                onClick={handleCloseSearch}
+                className="p-1 rounded-lg text-[var(--fg)]/40 hover:text-[var(--fg)] hover:bg-[var(--bg)] transition-colors cursor-pointer shrink-0"
+                title="Close (Esc)"
               >
-                <Sparkles className="w-3 h-3" />
-                <span className="truncate max-w-[130px]">{t("metaContextActive")}</span>
+                <X className="w-3.5 h-3.5" />
               </button>
-            )}
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 ml-2 text-xs text-[var(--fg)]/60">
-            <span>•</span>
-            <span>{t("nodeCount", { count: nodes.length })}</span>
-          </div>
-
-          <div className="h-4 w-px bg-[var(--border-color)]" />
-
-          {/* Tree Settings Gear Button */}
-          <button
-            type="button"
-            onClick={() => setIsSettingsOpen(true)}
-            title={t("treeSettings")}
-            className="p-1.5 rounded-xl text-[var(--fg)]/70 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Zoom Controls */}
@@ -879,6 +1176,8 @@ export default function DialogueTreeCanvas({
                   treeLanguage={tree.language}
                   depth={depth}
                   isSelected={selectedNodeId === node.id}
+                  isHighlighted={highlightedNodeId === node.id}
+                  searchQuery={isSearchOpen ? searchQuery : undefined}
                   isLatest={false}
                   isSuggestionsOpen={openSuggestionsNodeIds.has(node.id)}
                   aiSuggestions={suggestionsMap[node.id]}

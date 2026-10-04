@@ -24,6 +24,8 @@ import {
 import DialoguePhraseWords, {
   type SavedWordInfo,
   type UserDictionaryMeta,
+  computeMatchRanges,
+  renderPhraseSegment,
 } from "./DialoguePhraseWords";
 import { cn } from "@/lib/utils/cn";
 import { useTranslations, useLocale } from "next-intl";
@@ -64,6 +66,8 @@ interface DialogueTreeNodeCardProps {
   onUpdateNodeText: (nodeId: string, newText: string) => void;
   onUpdateNodeTranslation?: (nodeId: string, translation: string) => void;
   onDeleteNode?: (nodeId: string) => void;
+  isHighlighted?: boolean;
+  searchQuery?: string;
 }
 
 function DialogueTreeNodeCard({
@@ -72,6 +76,8 @@ function DialogueTreeNodeCard({
   depth,
   isSelected,
   isLatest,
+  isHighlighted = false,
+  searchQuery,
   isSuggestionsOpen,
   aiSuggestions,
   isGeneratingSuggestions,
@@ -205,11 +211,13 @@ function DialogueTreeNodeCard({
           {/* Main Card */}
           <div
             className={cn(
-              "w-[310px] rounded-3xl p-4 transition-all duration-200 backdrop-blur-2xl bg-[var(--surface)]/90 border-2 shadow-lg",
+              "w-[310px] rounded-3xl p-4 transition-all duration-300 backdrop-blur-2xl bg-[var(--surface)]/90 border-2 shadow-lg",
               speakerTheme,
               isSelected &&
                 "ring-4 ring-primary-500/25 scale-[1.01] shadow-2xl",
               isDragging && "ring-2 ring-primary-500 shadow-2xl scale-[1.02] cursor-grabbing",
+              isHighlighted &&
+                "ring-4 ring-amber-400 dark:ring-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.65)] scale-[1.04] z-50 animate-pulse",
             )}
           >
           {/* Card Header (Drag handle like Playground tables) */}
@@ -383,6 +391,7 @@ function DialogueTreeNodeCard({
                   userDictionaries={userDictionaries}
                   onWordSaved={onWordSaved}
                   onWordDeleted={onWordDeleted}
+                  searchQuery={searchQuery}
                 />
               </div>
 
@@ -390,7 +399,11 @@ function DialogueTreeNodeCard({
               <div className="pt-0.5">
                 {showTranslation && node.translation && (
                   <div className="text-xs text-[var(--fg)]/70 font-normal leading-relaxed pb-1 pt-1.5 border-t border-[var(--border-color)]/50 animate-in fade-in slide-in-from-top-1 duration-150 select-text">
-                    {node.translation}
+                    {renderPhraseSegment(
+                      node.translation,
+                      0,
+                      computeMatchRanges(node.translation, searchQuery),
+                    )}
                   </div>
                 )}
 

@@ -47,12 +47,85 @@ interface DialoguePhraseWordsProps {
     cleanedWord: string,
     dictionaryId: string,
   ) => void;
+  searchQuery?: string;
   className?: string;
 }
 
 // Clean non-letter/digit edge characters for dictionary matching
 function cleanToken(token: string): string {
   return token.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").toLowerCase();
+}
+
+export function computeMatchRanges(
+  text: string,
+  query?: string,
+): [number, number][] {
+  const trimmed = query?.trim().toLowerCase();
+  if (!trimmed || !text) return [];
+  const lowerText = text.toLowerCase();
+  const ranges: [number, number][] = [];
+  let startIndex = 0;
+  while (startIndex < lowerText.length) {
+    const found = lowerText.indexOf(trimmed, startIndex);
+    if (found === -1) break;
+    ranges.push([found, found + trimmed.length]);
+    startIndex = found + Math.max(1, trimmed.length);
+  }
+  return ranges;
+}
+
+export function renderPhraseSegment(
+  text: string,
+  startOffset: number,
+  matchRanges: [number, number][],
+): React.ReactNode {
+  if (matchRanges.length === 0 || !text) {
+    return text;
+  }
+
+  const endOffset = startOffset + text.length;
+  const overlapping = matchRanges.filter(
+    ([mStart, mEnd]) => mStart < endOffset && mEnd > startOffset,
+  );
+
+  if (overlapping.length === 0) {
+    return text;
+  }
+
+  const pieces: React.ReactNode[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const globalPos = startOffset + i;
+    const isMatched = overlapping.some(
+      ([mStart, mEnd]) => globalPos >= mStart && globalPos < mEnd,
+    );
+
+    let j = i + 1;
+    while (j < text.length) {
+      const nextPos = startOffset + j;
+      const nextMatched = overlapping.some(
+        ([mStart, mEnd]) => nextPos >= mStart && nextPos < mEnd,
+      );
+      if (nextMatched !== isMatched) break;
+      j++;
+    }
+
+    const chunk = text.slice(i, j);
+    if (isMatched) {
+      pieces.push(
+        <mark
+          key={i}
+          className="bg-amber-300 dark:bg-amber-400 text-amber-950 font-bold rounded-xs px-0.5 py-0.2 shadow-xs ring-1 ring-amber-500/40"
+        >
+          {chunk}
+        </mark>,
+      );
+    } else {
+      pieces.push(chunk);
+    }
+    i = j - 1;
+  }
+
+  return pieces;
 }
 
 export default function DialoguePhraseWords({
@@ -62,6 +135,7 @@ export default function DialoguePhraseWords({
   userDictionaries,
   onWordSaved,
   onWordDeleted,
+  searchQuery,
   className,
 }: DialoguePhraseWordsProps) {
   const t = useTranslations("dialogueTrees");
@@ -318,17 +392,35 @@ export default function DialoguePhraseWords({
     }
   };
 
+  const matchRanges = useMemo(
+    () => computeMatchRanges(phrase, searchQuery),
+    [phrase, searchQuery],
+  );
+
+  let runningOffset = 0;
+
   return (
     <span className={cn("inline-block leading-relaxed", className)}>
       {tokens.map((token, idx) => {
+        const tokenStart = runningOffset;
+        runningOffset += token.length;
+
         // Whitespace token
         if (/^\s+$/.test(token)) {
-          return <span key={idx}>{token}</span>;
+          return (
+            <span key={idx}>
+              {renderPhraseSegment(token, tokenStart, matchRanges)}
+            </span>
+          );
         }
 
         const cleaned = cleanToken(token);
         if (!cleaned) {
-          return <span key={idx}>{token}</span>;
+          return (
+            <span key={idx}>
+              {renderPhraseSegment(token, tokenStart, matchRanges)}
+            </span>
+          );
         }
 
         const savedInfo = savedWordsMap.get(cleaned);
@@ -342,10 +434,18 @@ export default function DialoguePhraseWords({
         const wordText = match ? match[2] : token;
         const trailingPunct = match ? match[3] : "";
 
+        const leadingStart = tokenStart;
+        const wordStart = tokenStart + leadingPunct.length;
+        const trailingStart = wordStart + wordText.length;
+
         if (isSaved) {
           return (
             <span key={idx} className="inline-block">
-              {leadingPunct && <span>{leadingPunct}</span>}
+              {leadingPunct && (
+                <span>
+                  {renderPhraseSegment(leadingPunct, leadingStart, matchRanges)}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={(e) => {
@@ -367,16 +467,24 @@ export default function DialoguePhraseWords({
                 })}
                 className="font-bold text-amber-500 dark:text-amber-400 hover:text-amber-600 hover:underline decoration-dotted underline-offset-4 transition-colors cursor-pointer p-0 m-0 border-0 bg-transparent inline"
               >
-                {wordText}
+                {renderPhraseSegment(wordText, wordStart, matchRanges)}
               </button>
-              {trailingPunct && <span>{trailingPunct}</span>}
+              {trailingPunct && (
+                <span>
+                  {renderPhraseSegment(trailingPunct, trailingStart, matchRanges)}
+                </span>
+              )}
             </span>
           );
         }
 
         return (
           <span key={idx} className="inline-block">
-            {leadingPunct && <span>{leadingPunct}</span>}
+            {leadingPunct && (
+              <span>
+                {renderPhraseSegment(leadingPunct, leadingStart, matchRanges)}
+              </span>
+            )}
             <button
               type="button"
               onClick={(e) => {
@@ -394,9 +502,13 @@ export default function DialoguePhraseWords({
               title={t("clickToSaveTooltip", { word: cleaned })}
               className="text-[var(--fg)] hover:text-primary-500 hover:underline decoration-dotted underline-offset-4 transition-colors cursor-pointer font-medium p-0 m-0 border-0 bg-transparent inline"
             >
-              {wordText}
+              {renderPhraseSegment(wordText, wordStart, matchRanges)}
             </button>
-            {trailingPunct && <span>{trailingPunct}</span>}
+            {trailingPunct && (
+              <span>
+                {renderPhraseSegment(trailingPunct, trailingStart, matchRanges)}
+              </span>
+            )}
           </span>
         );
       })}

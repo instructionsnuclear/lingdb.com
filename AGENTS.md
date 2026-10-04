@@ -104,6 +104,7 @@ Interactive branching conversation builder helping learners discover dialogue co
   - **Instant Word Translation**: Clicking any word automatically displays its contextual translation right next to the word header in the portal popup (e.g. `"besser" • daha iyi`). If previously saved, it loads instantly from dictionary metadata; otherwise, it translates via `OPENROUTER_TRANSLATION_MODEL` (`/api/dialogue-trees/translate-word`).
   - Saving reuses the existing/in-flight translation immediately (bypassing AI re-translation for instant saves), or generates one if missing, and adds the word to the target dictionary via `/api/dialogue-trees/save-word`.
   - **Duplicate Prevention & Quick Removal**: Dictionaries already containing the word cannot be clicked again to save duplicates, display an orange check icon, and feature an inline `X` icon button to immediately delete the word from that dictionary via `/api/words/[id]` with real-time state updates across the canvas.
+- **Interactive Phrase Search & Camera Focus**: Search icon button in the top bar next to the gear settings button (or `Ctrl+F`/`Cmd+F`) opens a floating glassmorphic search bar with live match counter (`1/N`), next/previous arrows, and smooth GSAP camera panning to matching phrases. Highlights the target card with a 1-second pulse animation (`ring-4 ring-amber-400 scale-[1.04]`) and "Match" badge, with `Tab` / `Shift+Tab` or `Enter` seamlessly cycling between all matching cards across the canvas.
 
 ---
 
