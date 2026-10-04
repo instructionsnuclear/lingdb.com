@@ -77,6 +77,8 @@ export default function PlaygroundClient({
     dictionaryIds: string[];
     positions?: Record<string, { x: number; y: number }> | null;
     savedPhrases?: SavedPlaygroundPhrase[] | null;
+    metaContext?: string | null;
+    level?: string | null;
   } | null>(() => {
     if (initialPackId) {
       const found = initialSavedPacks.find((p) => p.id === initialPackId);
@@ -88,6 +90,8 @@ export default function PlaygroundClient({
           dictionaryIds: found.dictionaryIds,
           positions: found.positions,
           savedPhrases: found.savedPhrases,
+          metaContext: found.metaContext,
+          level: found.level,
         };
       }
     }
@@ -232,6 +236,37 @@ export default function PlaygroundClient({
           p.id === activePack.id ? { ...p, positions: newPositions } : p,
         ),
       );
+    },
+    [activePack?.id],
+  );
+
+  const handlePackSettingsUpdated = useCallback(
+    (updated: { title: string; level: string; metaContext: string | null }) => {
+      setActivePack((prev) =>
+        prev
+          ? {
+              ...prev,
+              title: updated.title,
+              level: updated.level,
+              metaContext: updated.metaContext,
+            }
+          : null,
+      );
+
+      if (activePack?.id) {
+        setSavedPacks((prev) =>
+          prev.map((p) =>
+            p.id === activePack.id
+              ? {
+                  ...p,
+                  title: updated.title,
+                  level: updated.level,
+                  metaContext: updated.metaContext,
+                }
+              : p,
+          ),
+        );
+      }
     },
     [activePack?.id],
   );
@@ -582,6 +617,8 @@ export default function PlaygroundClient({
           id: d.id,
           title: d.title,
         })),
+        metaContext: activePack.metaContext,
+        level: activePack.level || "B1",
       });
 
       setPhrases(res.phrases);
@@ -673,6 +710,8 @@ export default function PlaygroundClient({
         packId={activePack.id}
         packTitle={activePack.title}
         language={activePack.language}
+        metaContext={activePack.metaContext}
+        level={activePack.level}
         dictionaries={canvasDictionaries}
         savedPositions={activePack.positions}
         savedPhrases={activePack.savedPhrases || []}
@@ -683,6 +722,7 @@ export default function PlaygroundClient({
         onWordAdded={handleWordAdded}
         onOpenPackSelector={() => setActivePack(null)}
         onPositionsUpdated={handlePositionsUpdated}
+        onPackSettingsUpdated={handlePackSettingsUpdated}
         userDictionaries={initialUserDictionaries}
         onAddDictionaries={handleAddDictionaries}
         onRemoveDictionary={handleRemoveDictionary}

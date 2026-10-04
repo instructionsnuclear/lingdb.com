@@ -448,6 +448,8 @@ export const dictionaryLists = pgTable(
     dictionaryIds: jsonb("dictionary_ids").$type<string[]>().notNull(),
     positions: jsonb("positions").$type<Record<string, { x: number; y: number }>>(),
     savedPhrases: jsonb("saved_phrases").$type<SavedPlaygroundPhrase[]>().default([]),
+    metaContext: text("meta_context"),
+    level: text("level").default("B1"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

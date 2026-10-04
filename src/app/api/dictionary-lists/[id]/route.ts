@@ -29,6 +29,8 @@ const updateListSchema = z.object({
       }),
     )
     .optional(),
+  metaContext: z.string().max(5000).nullable().optional(),
+  level: z.string().nullable().optional(),
 });
 
 // PATCH /api/dictionary-lists/[id] — update pack positions or metadata
@@ -93,6 +95,12 @@ export async function PATCH(
   }
   if (result.data.savedPhrases !== undefined) {
     updateData.savedPhrases = result.data.savedPhrases;
+  }
+  if (result.data.metaContext !== undefined) {
+    updateData.metaContext = result.data.metaContext ? result.data.metaContext.trim() : null;
+  }
+  if (result.data.level !== undefined) {
+    updateData.level = result.data.level || "B1";
   }
 
   const [updated] = await db

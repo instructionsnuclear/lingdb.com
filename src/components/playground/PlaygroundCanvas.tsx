@@ -21,12 +21,14 @@ import {
   ZoomOut,
   Bookmark,
   Plus,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import DraggableDictionaryTable from "./DraggableDictionaryTable";
 import AddDictionaryModal, {
   type UserDictionarySummary,
 } from "./AddDictionaryModal";
+import PlaygroundSettingsModal from "./PlaygroundSettingsModal";
 import {
   type PlaygroundDictionary,
   type SavedPlaygroundPhrase,
@@ -38,6 +40,8 @@ interface PlaygroundCanvasProps {
   packId?: string;
   packTitle: string;
   language: string;
+  metaContext?: string | null;
+  level?: string | null;
   dictionaries: PlaygroundDictionary[];
   savedPositions?: Record<string, { x: number; y: number }> | null;
   savedPhrases?: SavedPlaygroundPhrase[];
@@ -48,6 +52,11 @@ interface PlaygroundCanvasProps {
   onWordAdded: (dictionaryId: string, newWord: Word) => void;
   onOpenPackSelector: () => void;
   onPositionsUpdated?: (positions: Record<string, { x: number; y: number }>) => void;
+  onPackSettingsUpdated?: (updated: {
+    title: string;
+    level: string;
+    metaContext: string | null;
+  }) => void;
   userDictionaries?: UserDictionarySummary[];
   onAddDictionaries?: (selectedIds: string[]) => Promise<void> | void;
   onRemoveDictionary?: (dictionaryId: string) => void;
@@ -57,6 +66,8 @@ export default function PlaygroundCanvas({
   packId,
   packTitle,
   language,
+  metaContext,
+  level,
   dictionaries,
   savedPositions,
   savedPhrases,
@@ -67,12 +78,14 @@ export default function PlaygroundCanvas({
   onWordAdded,
   onOpenPackSelector,
   onPositionsUpdated,
+  onPackSettingsUpdated,
   userDictionaries,
   onAddDictionaries,
   onRemoveDictionary,
 }: PlaygroundCanvasProps) {
   const t = useTranslations("playground");
   const [isAddDictModalOpen, setIsAddDictModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -524,6 +537,18 @@ export default function PlaygroundCanvas({
                 <span className="text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full bg-primary-500/15 text-primary-600 dark:text-primary-300 shrink-0">
                   {language}
                 </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20 shrink-0">
+                  {level || "B1"}
+                </span>
+                {metaContext && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 shrink-0"
+                    title={t("meta_context_active")}
+                  >
+                    <Sparkles className="h-2.5 w-2.5" />
+                    <span className="hidden md:inline">{t("meta_context_active")}</span>
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-[var(--fg)]/50 truncate hidden sm:block">
                 {dictionaries.length} {dictionaries.length === 1 ? "dictionary" : "dictionaries"} · Drag canvas or hold Space to pan · Wheel to zoom
@@ -531,7 +556,7 @@ export default function PlaygroundCanvas({
             </div>
           </div>
 
-          {/* Right side: Layout Auto-Save Indicator + Reset Layout */}
+          {/* Right side: Layout Auto-Save Indicator + Settings */}
           <div className="flex items-center gap-2 shrink-0">
             {saveStatus === "saving" && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium text-[var(--fg)]/70 bg-[var(--surface)] border border-[var(--border-color)] animate-pulse">
@@ -546,14 +571,15 @@ export default function PlaygroundCanvas({
               </div>
             )}
 
+            {/* Settings Button (opens settings modal with CEFR level, Scenario context, and layout reset) */}
             <button
               type="button"
-              onClick={handleResetPositions}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors active:scale-95"
-              title={t("reset_layout")}
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-color)] bg-[var(--surface)] hover:bg-primary-500/10 hover:border-primary-500/30 text-xs font-semibold text-[var(--fg)]/70 hover:text-[var(--fg)] transition-colors active:scale-95 cursor-pointer"
+              title={t("settings")}
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">{t("reset_layout")}</span>
+              <Settings className="h-3.5 w-3.5 text-primary-500" />
+              <span className="hidden sm:inline">{t("settings")}</span>
             </button>
 
             {/* Add Dictionary Button (right next to Yerleşimi Sıfırla) */}
@@ -710,6 +736,23 @@ export default function PlaygroundCanvas({
           onAddDictionaries={onAddDictionaries}
         />
       )}
+
+      {/* Pack Settings Modal */}
+      <PlaygroundSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        pack={{
+          id: packId,
+          title: packTitle,
+          language,
+          metaContext,
+          level,
+        }}
+        onPackUpdated={(updated) => {
+          onPackSettingsUpdated?.(updated);
+        }}
+        onResetLayout={handleResetPositions}
+      />
     </div>
   );
 }

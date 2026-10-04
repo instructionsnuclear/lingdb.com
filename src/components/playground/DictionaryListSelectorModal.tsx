@@ -13,8 +13,10 @@ import {
   BookOpen,
   ArrowRight,
   Loader2,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { CEFR_LEVELS } from "@/components/dialogue-trees/DialogueTreeSettingsModal";
 import type {
   EnrichedDictionaryList,
   SavedPlaygroundPhrase,
@@ -43,6 +45,8 @@ interface DictionaryListSelectorModalProps {
     dictionaryIds: string[];
     positions?: Record<string, { x: number; y: number }> | null;
     savedPhrases?: SavedPlaygroundPhrase[] | null;
+    metaContext?: string | null;
+    level?: string | null;
   }) => void;
   onPackCreated: (newPack: EnrichedDictionaryList) => void;
   onPackDeleted: (packId: string) => void;
@@ -76,6 +80,8 @@ export default function DictionaryListSelectorModal({
   // Creation state
   const [selectedLanguage, setSelectedLanguage] = useState<string>("de");
   const [packTitle, setPackTitle] = useState("");
+  const [level, setLevel] = useState<string>("B1");
+  const [metaContext, setMetaContext] = useState<string>("");
   const [selectedDictIds, setSelectedDictIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingPackId, setDeletingPackId] = useState<string | null>(null);
@@ -108,6 +114,8 @@ export default function DictionaryListSelectorModal({
       title: generatedTitle,
       language: selectedLanguage,
       dictionaryIds: selectedDictIds,
+      level,
+      metaContext: metaContext.trim() || null,
     });
     if (!isInline && onClose) onClose();
   };
@@ -129,6 +137,8 @@ export default function DictionaryListSelectorModal({
         title: packTitle.trim(),
         language: selectedLanguage,
         dictionaryIds: selectedDictIds,
+        level,
+        metaContext: metaContext.trim() || null,
       });
 
       const enriched: EnrichedDictionaryList = {
@@ -137,6 +147,8 @@ export default function DictionaryListSelectorModal({
           .filter((d) => selectedDictIds.includes(d.id))
           .map((d) => ({ id: d.id, title: d.title, language: d.language })),
         dictionaryCount: selectedDictIds.length,
+        level: res.list.level || level,
+        metaContext: res.list.metaContext || (metaContext.trim() || null),
       };
 
       onPackCreated(enriched);
@@ -149,6 +161,8 @@ export default function DictionaryListSelectorModal({
         dictionaryIds: enriched.dictionaryIds,
         positions: enriched.positions,
         savedPhrases: enriched.savedPhrases,
+        level: enriched.level,
+        metaContext: enriched.metaContext,
       });
       if (!isInline && onClose) onClose();
     } catch (err: unknown) {
@@ -283,6 +297,8 @@ export default function DictionaryListSelectorModal({
                           dictionaryIds: pack.dictionaryIds,
                           positions: pack.positions,
                           savedPhrases: pack.savedPhrases,
+                          level: pack.level,
+                          metaContext: pack.metaContext,
                         });
                         if (!isInline && onClose) onClose();
                       }}
@@ -290,10 +306,23 @@ export default function DictionaryListSelectorModal({
                     >
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-2.5">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-500/10 text-primary-700 dark:text-primary-300">
-                            <span>{langObj?.flag || "🌐"}</span>
-                            <span>{langObj?.name || pack.language.toUpperCase()}</span>
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-500/10 text-primary-700 dark:text-primary-300">
+                              <span>{langObj?.flag || "🌐"}</span>
+                              <span>{langObj?.name || pack.language.toUpperCase()}</span>
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 border border-primary-500/20">
+                              {pack.level || "B1"}
+                            </span>
+                            {pack.metaContext && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                                title={t("meta_context_active")}
+                              >
+                                <Sparkles className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
                           <button
                             type="button"
                             onClick={(e) => handleDeletePack(e, pack.id)}
@@ -454,6 +483,77 @@ export default function DictionaryListSelectorModal({
                 onChange={(e) => setPackTitle(e.target.value)}
                 placeholder={t("pack_name_placeholder")}
                 className="w-full px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg)] text-sm text-[var(--fg)] placeholder:text-[var(--fg)]/30 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+              />
+            </div>
+
+            {/* Step 4: CEFR Language Level */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-[var(--fg)]">
+                  <GraduationCap className="w-4 h-4 text-primary-500" />
+                  <span>4. {t("level_label")}</span>
+                </label>
+                <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">
+                  {level} - {CEFR_LEVELS.find((l) => l.code === level)?.desc}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {CEFR_LEVELS.map((lvl) => {
+                  const isSelected = level === lvl.code;
+                  return (
+                    <button
+                      key={lvl.code}
+                      type="button"
+                      onClick={() => setLevel(lvl.code)}
+                      className={cn(
+                        "flex flex-col items-center justify-center py-2 px-1.5 rounded-xl border text-center transition-all cursor-pointer relative",
+                        isSelected
+                          ? "border-primary-500 bg-primary-500/10 text-primary-600 dark:text-primary-300 ring-2 ring-primary-500/25 font-bold shadow-xs"
+                          : "border-[var(--border-color)] bg-[var(--surface)]/40 hover:bg-[var(--surface)] text-[var(--fg)]/70 hover:border-primary-500/30",
+                      )}
+                    >
+                      <span className="text-xs font-extrabold font-mono tracking-tight">
+                        {lvl.code}
+                      </span>
+                      <span className="text-[10px] text-[var(--fg)]/50 mt-0.5 truncate max-w-full">
+                        {lvl.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Step 5: Scenario Meta Context (AI Memory Border) */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-[var(--fg)]">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>5. {t("meta_context_label")}</span>
+                </label>
+                <span
+                  className={cn(
+                    "text-xs font-mono",
+                    metaContext.length >= 4500
+                      ? "text-red-500 font-bold"
+                      : "text-[var(--fg)]/50",
+                  )}
+                >
+                  {metaContext.length} / 5000
+                </span>
+              </div>
+
+              <p className="text-xs text-[var(--fg)]/60 mb-2 leading-relaxed">
+                {t("meta_context_hint")}
+              </p>
+
+              <textarea
+                value={metaContext}
+                onChange={(e) => setMetaContext(e.target.value.slice(0, 5000))}
+                rows={4}
+                maxLength={5000}
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-primary-500/50 text-xs sm:text-sm font-normal leading-relaxed transition-all resize-y"
               />
             </div>
           </div>

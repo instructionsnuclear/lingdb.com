@@ -11,6 +11,8 @@ const createListSchema = z.object({
   dictionaryIds: z
     .array(z.string().uuid())
     .min(1, "Select at least one dictionary"),
+  metaContext: z.string().max(5000).nullable().optional(),
+  level: z.string().nullable().optional(),
 });
 
 // GET /api/dictionary-lists — list user's dictionary packs
@@ -99,7 +101,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { title, language, dictionaryIds } = result.data;
+  const { title, language, dictionaryIds, metaContext, level } = result.data;
 
   // Validate that all dictionaries belong to this user and match the specified language
   const userDicts = await db.query.dictionaries.findMany({
@@ -145,6 +147,8 @@ export async function POST(request: NextRequest) {
       title,
       language,
       dictionaryIds,
+      metaContext: metaContext?.trim() || null,
+      level: level || "B1",
     })
     .returning();
 

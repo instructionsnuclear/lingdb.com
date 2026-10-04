@@ -40,6 +40,8 @@ export async function createDictionaryList(payload: {
   title: string;
   language: string;
   dictionaryIds: string[];
+  metaContext?: string | null;
+  level?: string | null;
 }) {
   return http<{ list: DictionaryList }>("/api/dictionary-lists", {
     method: "POST",
@@ -60,6 +62,8 @@ export async function updateDictionaryList(
     dictionaryIds?: string[];
     positions?: Record<string, { x: number; y: number }>;
     savedPhrases?: SavedPlaygroundPhrase[];
+    metaContext?: string | null;
+    level?: string | null;
   },
 ) {
   return http<{ list: DictionaryList }>(`/api/dictionary-lists/${id}`, {
@@ -99,6 +103,8 @@ export async function generatePlaygroundPhrases(payload: {
   words: Array<{ title: string; translation: string; dictionaryId?: string }>;
   language: string;
   dictionaries?: Array<{ id: string; title: string }>;
+  metaContext?: string | null;
+  level?: string | null;
 }) {
   return http<{
     phrases: GeneratedPhrase[];

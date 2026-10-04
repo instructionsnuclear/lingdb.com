@@ -25,7 +25,18 @@ const requestSchema = z.object({
       }),
     )
     .optional(),
+  metaContext: z.string().max(5000).nullable().optional(),
+  level: z.string().nullable().optional(),
 });
+
+const CEFR_LEVEL_GUIDES: Record<string, string> = {
+  A1: "A1 (Beginner - strictly use simple vocabulary, basic short sentences, elementary present tense, everyday basic words)",
+  A2: "A2 (Elementary - simple conversational structures, routine familiar exchanges, simple connectors)",
+  B1: "B1 (Intermediate - standard conversational language, clear straightforward sentences, everyday idioms)",
+  B2: "B2 (Upper Intermediate - varied vocabulary, more complex sentence structures, nuanced conversational phrases)",
+  C1: "C1 (Advanced - sophisticated vocabulary, natural idioms, complex grammar, stylistic subtlety)",
+  C2: "C2 (Mastery - native-level eloquence, rich figurative language, highly nuanced conversational mastery)",
+};
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
@@ -78,8 +89,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { words: selectedWords, language, dictionaries: availableDicts = [] } =
-    result.data;
+  const {
+    words: selectedWords,
+    language,
+    dictionaries: availableDicts = [],
+    metaContext,
+    level,
+  } = result.data;
   const languageName = LANGUAGE_NAMES[language] || "German";
 
   const wordsListDescription = selectedWords
@@ -95,9 +111,36 @@ CRITICAL INSTRUCTION FOR "suggestedWords":
 For every suggested word in "suggestedWords", you MUST assign the "dictionaryId" of the dictionary it best fits into based on the dictionary title (for example: place verbs into a dictionary for Verbs/Fiiller, adverbs into Adverbs/Zarflar, nouns into Nouns/İsimler, etc.). You must use one of the exact IDs from the AVAILABLE DICTIONARIES list above.`
       : "";
 
+  const targetLevel = level && CEFR_LEVEL_GUIDES[level] ? level : "B1";
+  const levelDescription = CEFR_LEVEL_GUIDES[targetLevel];
+
+  const metaContextSection =
+    metaContext && metaContext.trim().length > 0
+      ? `
+SCENARIO META CONTEXT & MEMORY (Fake RAG Border):
+"""
+${metaContext.trim().slice(0, 5000)}
+"""
+
+CRITICAL RULE FOR META CONTEXT:
+The meta context above defines the background scenario, character roles, domain knowledge, and memory border.
+It acts as memory and a context boundary to guide the topic, setting, and tone of generated phrases.
+It must naturally incorporate the selected words while respecting the roles and scenario described in this memory border.`
+      : "";
+
   const systemPrompt = `You are a high-level language tutor. Given a set of vocabulary words in ${languageName}, generate exactly 3 natural, high-quality, fluent example sentences.
 Focus on natural, realistic usage and standard everyday phrasing. Do not force artificial contexts or awkward scenarios—prioritize natural flow and grammatical correctness.
 In each sentence, naturally incorporate the provided words where sensible.
+
+TARGET LANGUAGE LEVEL:
+CEFR ${targetLevel} - ${levelDescription}
+Suggested sentences MUST match this language complexity and vocabulary level appropriately for a learner.
+${metaContextSection}
+
+CRITICAL INSTRUCTIONS:
+1. In each sentence, naturally incorporate the provided words where sensible.
+2. Strictly adhere to CEFR Level ${targetLevel}.
+${metaContext && metaContext.trim().length > 0 ? "3. Respect the scenario meta context memory border so generated sentences remain thematically coherent." : ""}
 
 CRITICAL INSTRUCTION FOR "matchedWords":
 In the "matchedWords" array for each sentence, you MUST list the exact word forms and inflected/conjugated variations as they appear in the sentence that correspond to any of the chosen words.
