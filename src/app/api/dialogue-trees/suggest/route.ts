@@ -14,6 +14,7 @@ const requestSchema = z.object({
   isRefresh: z.boolean().optional(),
   metaContext: z.string().max(5000).nullable().optional(),
   level: z.string().nullable().optional(),
+  translationLanguage: z.string().optional(),
 });
 
 const CEFR_LEVEL_GUIDES: Record<string, string> = {
@@ -31,6 +32,14 @@ const LANGUAGE_NAMES: Record<string, string> = {
   de: "German",
   es: "Spanish",
   tr: "Turkish",
+  it: "Italian",
+  pt: "Portuguese",
+  ru: "Russian",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  ar: "Arabic",
+  nl: "Dutch",
 };
 
 export async function POST(request: NextRequest) {
@@ -76,20 +85,24 @@ export async function POST(request: NextRequest) {
     isRefresh,
     metaContext,
     level,
+    translationLanguage,
   } = result.data;
 
-  // Rate limiting: 5 AI generations per minute and 30 per hour
+  // Rate limiting: 5 AI generations per minute and 30 per hour (Admins get 60/min and 500/hour)
+  const isAdmin = dbUser.role === "ADMIN";
+  const minuteLimit = isAdmin ? 60 : 5;
+  const hourlyLimit = isAdmin ? 500 : 30;
+
   const isAllowedPerMinute = await checkRateLimit(
     dbUser.id,
     "dialogue_tree_suggest",
-    { limit: 5, windowMs: 60 * 1000 },
+    { limit: minuteLimit, windowMs: 60 * 1000 },
   );
 
   if (!isAllowedPerMinute) {
     return NextResponse.json(
       {
-        error:
-          "Rate limit reached: Maximum 5 AI generations per minute. Please wait a moment.",
+        error: `Rate limit reached: Maximum ${minuteLimit} AI generations per minute. Please wait a moment.`,
       },
       { status: 429 },
     );
@@ -98,21 +111,20 @@ export async function POST(request: NextRequest) {
   const isAllowedPerHour = await checkRateLimit(
     dbUser.id,
     "dialogue_tree_suggest",
-    { limit: 30, windowMs: 60 * 60 * 1000 },
+    { limit: hourlyLimit, windowMs: 60 * 60 * 1000 },
   );
 
   if (!isAllowedPerHour) {
     return NextResponse.json(
       {
-        error:
-          "Rate limit reached: Maximum 30 AI generations per hour. Please try again later.",
+        error: `Rate limit reached: Maximum ${hourlyLimit} AI generations per hour. Please try again later.`,
       },
       { status: 429 },
     );
   }
 
-  // Credit check: Only explicit refresh consumes 1 AI credit; auto-generated responses are free
-  if (isRefresh && dbUser.aiCredits <= 0) {
+  // Credit check: Only explicit refresh consumes 1 AI credit; auto-generated responses are free (Admins have unlimited refreshes)
+  if (isRefresh && !isAdmin && dbUser.aiCredits <= 0) {
     return NextResponse.json(
       {
         error:
@@ -122,7 +134,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const languageName = LANGUAGE_NAMES[language] || "English";
+  const languageName = LANGUAGE_NAMES[language.toLowerCase()] || language || "English";
+  const targetTranslationLang = translationLanguage || "en";
+  const targetTranslationLangName =
+    LANGUAGE_NAMES[targetTranslationLang.toLowerCase()] ||
+    targetTranslationLang ||
+    "English";
 
   const formattedConversation = conversationLine
     .map((phrase, idx) => `Speaker ${idx % 2 === 0 ? "A" : "B"}: "${phrase}"`)
@@ -166,17 +183,27 @@ CRITICAL INSTRUCTIONS:
    - Option 1: Positive, enthusiastic, or detailed answer
    - Option 2: Casual, concise, or direct answer
    - Option 3: Counter-question, topic redirection, or alternative nuance).
-3. Do not include quotes, speaker labels, or numbers inside the string values.
+3. Do not include quotes, speaker labels, or numbers inside the phrase string values.
 4. Keep each response concise (1-2 sentences max), realistic for everyday spoken communication.
-5. Strictly adhere to CEFR Level ${targetLevel}.
-${metaContext && metaContext.trim().length > 0 ? "6. Respect the scenario meta context memory border so suggestions remain thematically coherent." : ""}
+5. Provide a faithful, accurate, and natural translation for each phrase in ${targetTranslationLangName} ("translation" field).
+6. Strictly adhere to CEFR Level ${targetLevel}.
+${metaContext && metaContext.trim().length > 0 ? "7. Respect the scenario meta context memory border so suggestions remain thematically coherent." : ""}
 
 Respond STRICTLY with a valid JSON object in this exact shape:
 {
   "suggestions": [
-    "First potential continuation in ${languageName}",
-    "Second potential continuation in ${languageName}",
-    "Third potential continuation in ${languageName}"
+    {
+      "phrase": "First potential continuation in ${languageName}",
+      "translation": "Accurate natural translation in ${targetTranslationLangName}"
+    },
+    {
+      "phrase": "Second potential continuation in ${languageName}",
+      "translation": "Accurate natural translation in ${targetTranslationLangName}"
+    },
+    {
+      "phrase": "Third potential continuation in ${languageName}",
+      "translation": "Accurate natural translation in ${targetTranslationLangName}"
+    }
   ]
 }`;
 
@@ -187,7 +214,7 @@ Respond STRICTLY with a valid JSON object in this exact shape:
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Provide 3 natural continuations for: "${currentPhrase}"`,
+          content: `Provide 3 natural continuations with ${targetTranslationLangName} translations for: "${currentPhrase}"`,
         },
       ],
     });
@@ -203,7 +230,7 @@ Respond STRICTLY with a valid JSON object in this exact shape:
     const data = await response.json();
     const rawContent = data.choices?.[0]?.message?.content || "{}";
 
-    let parsed: { suggestions?: string[] };
+    let parsed: any;
     try {
       const cleaned = rawContent
         .replace(/```json?\n?/g, "")
@@ -217,9 +244,47 @@ Respond STRICTLY with a valid JSON object in this exact shape:
       );
     }
 
-    let suggestions = Array.isArray(parsed.suggestions)
-      ? parsed.suggestions.filter(Boolean)
-      : [];
+    const parseSuggestionItem = (
+      item: unknown,
+    ): { phrase: string; translation: string } | null => {
+      if (typeof item === "string") {
+        const text = item.trim();
+        return text ? { phrase: text, translation: "" } : null;
+      }
+      if (item && typeof item === "object") {
+        const obj = item as Record<string, unknown>;
+        const phrase =
+          typeof obj.phrase === "string"
+            ? obj.phrase.trim()
+            : typeof obj.text === "string"
+              ? obj.text.trim()
+              : "";
+        const translation =
+          typeof obj.translation === "string" ? obj.translation.trim() : "";
+        if (phrase) {
+          return { phrase, translation };
+        }
+      }
+      return null;
+    };
+
+    let suggestions: { phrase: string; translation: string }[] = [];
+
+    if (Array.isArray(parsed?.suggestions)) {
+      suggestions = parsed.suggestions
+        .map(parseSuggestionItem)
+        .filter(
+          (item: unknown): item is { phrase: string; translation: string } =>
+            Boolean(item),
+        );
+    } else if (Array.isArray(parsed)) {
+      suggestions = parsed
+        .map(parseSuggestionItem)
+        .filter(
+          (item: unknown): item is { phrase: string; translation: string } =>
+            Boolean(item),
+        );
+    }
 
     if (suggestions.length === 0) {
       return NextResponse.json(
@@ -228,7 +293,7 @@ Respond STRICTLY with a valid JSON object in this exact shape:
       );
     }
 
-    suggestions = suggestions.slice(0, 3).map((s) => s.trim());
+    suggestions = suggestions.slice(0, 3);
 
     // Log the generation activity for rate limiting
     await logActivity(dbUser.id, "dialogue_tree_suggest", {
@@ -237,8 +302,8 @@ Respond STRICTLY with a valid JSON object in this exact shape:
     });
 
     let updatedCredits = dbUser.aiCredits;
-    if (isRefresh) {
-      // Deduct 1 AI credit only when user explicitly clicked refresh
+    if (isRefresh && !isAdmin) {
+      // Deduct 1 AI credit only when regular user explicitly clicked refresh
       updatedCredits = Math.max(0, dbUser.aiCredits - 1);
       await db
         .update(users)

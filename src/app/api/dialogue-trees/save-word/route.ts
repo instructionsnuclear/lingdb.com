@@ -11,6 +11,7 @@ const saveWordSchema = z.object({
   word: z.string().min(1).max(100),
   contextPhrase: z.string().min(1).max(500),
   dictionaryId: z.string().uuid(),
+  translation: z.string().max(200).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -42,7 +43,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { word, contextPhrase, dictionaryId } = result.data;
+  const {
+    word,
+    contextPhrase,
+    dictionaryId,
+    translation: providedTranslation,
+  } = result.data;
 
   // Verify dictionary access
   const dict = await db.query.dictionaries.findFirst({
@@ -93,9 +99,10 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Generate translation via AI based on dictionary language, name, and phrase context
-  let translation = "";
-  if (openRouterKey) {
+  // If a translation was already generated in the modal, use it directly without re-translating!
+  let translation = providedTranslation?.trim() || "";
+
+  if (!translation && openRouterKey) {
     try {
       const systemPrompt = `You are a bilingual dictionary translator.
 Given a word used in a specific sentence, translate this word into the dictionary's target language (${dict.language}).
@@ -110,6 +117,7 @@ Dictionary language: "${dict.language}"`;
 
       const aiRes = await fetchOpenRouterChatCompletion({
         apiKey: openRouterKey,
+        model: process.env.OPENROUTER_TRANSLATION_MODEL?.trim(),
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

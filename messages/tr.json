@@ -725,6 +725,9 @@
       "deleteFailed": "Ağaç silinemedi",
       "wordSaved": "\"{word}\" ({translation}) {dict} sözlüğüne kaydedildi!",
       "wordSaveFailed": "Kelime kaydedilemedi. Lütfen tekrar deneyin.",
+      "wordRemoved": "\"{word}\", {dict} sözlüğünden kaldırıldı!",
+      "wordDeleteFailed": "Kelime kaldırılamadı. Lütfen tekrar deneyin.",
+      "translateFailed": "Cümle çevrilemedi. Lütfen tekrar deneyin.",
       "needDicts": "Kelime kaydetmek için önce bir sözlük oluşturun!",
       "settingsSaved": "Diyalog ağacı ayarları güncellendi!",
       "settingsSaveFailed": "Ayarlar güncellenemedi. Lütfen tekrar deneyin."
@@ -773,8 +776,12 @@
     "inDictionaryTooltip": "Sözlükte mevcut: \"{dict}\" ({translation})",
     "clickToSaveTooltip": "\"{word}\" kelimesini sözlüğe kaydetmek için tıklayın",
     "saveWordTo": "Kelimeyi sözlüğe kaydet:",
+    "removeWordFromDict": "Kelimeyi bu sözlükten kaldır",
     "savingWord": "Çevriliyor ve kaydediliyor...",
     "pronouncePhrase": "Cümleyi seslendir",
+    "showTranslation": "Cümle çevirisini göster",
+    "hideTranslation": "Cümle çevirisini gizle",
+    "translatingPhrase": "Cümle çevriliyor...",
     "speechNotSupported": "Tarayıcınızda ses sentezi desteklenmiyor."
   },
   "tools": {

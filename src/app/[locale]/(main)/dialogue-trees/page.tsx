@@ -83,6 +83,7 @@ export default async function DialogueTreesPage({
     id: w.id,
     title: w.title,
     translation: w.translation,
+    dictionaryId: w.dictionaryId,
     dictionaryTitle: dictMap.get(w.dictionaryId) || "",
   }));
 

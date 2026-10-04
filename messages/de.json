@@ -745,6 +745,9 @@
       "deleteFailed": "Baum konnte nicht gelöscht werden",
       "wordSaved": "„{word}“ ({translation}) in {dict} gespeichert!",
       "wordSaveFailed": "Wort konnte nicht gespeichert werden. Bitte versuche es erneut.",
+      "wordRemoved": "„{word}“ aus {dict} entfernt!",
+      "wordDeleteFailed": "Wort konnte nicht entfernt werden. Bitte versuche es erneut.",
+      "translateFailed": "Satz konnte nicht übersetzt werden. Bitte versuche es erneut.",
       "needDicts": "Erstelle zuerst ein Wörterbuch, um Wörter zu speichern!",
       "settingsSaved": "Dialogbaumeinstellungen aktualisiert!",
       "settingsSaveFailed": "Einstellungen konnten nicht aktualisiert werden. Bitte versuche es erneut."
@@ -793,8 +796,12 @@
     "inDictionaryTooltip": "Im Wörterbuch: „{dict}“ ({translation})",
     "clickToSaveTooltip": "Klicken, um „{word}“ im Wörterbuch zu speichern",
     "saveWordTo": "Wort im Wörterbuch speichern:",
+    "removeWordFromDict": "Wort aus diesem Wörterbuch entfernen",
     "savingWord": "Wird übersetzt & gespeichert...",
     "pronouncePhrase": "Satz vorlesen",
+    "showTranslation": "Satzübersetzung anzeigen",
+    "hideTranslation": "Satzübersetzung ausblenden",
+    "translatingPhrase": "Satz wird übersetzt...",
     "speechNotSupported": "Sprachausgabe wird von Ihrem Browser nicht unterstützt."
   },
   "tools": {

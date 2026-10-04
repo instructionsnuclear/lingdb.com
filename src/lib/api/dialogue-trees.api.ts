@@ -21,6 +21,13 @@ export interface UpdateDialogueTreePayload {
   level?: string | null;
 }
 
+export interface DialogueTreeSuggestionItem {
+  phrase: string;
+  translation?: string;
+}
+
+export type DialogueSuggestion = string | DialogueTreeSuggestionItem;
+
 export interface SuggestDialogueResponsesPayload {
   conversationLine: string[];
   language: string;
@@ -28,12 +35,14 @@ export interface SuggestDialogueResponsesPayload {
   isRefresh?: boolean;
   metaContext?: string | null;
   level?: string | null;
+  translationLanguage?: string;
 }
 
 export interface SaveWordFromTreePayload {
   word: string;
   contextPhrase: string;
   dictionaryId: string;
+  translation?: string;
 }
 
 export async function getDialogueTrees() {
@@ -71,7 +80,7 @@ export async function suggestDialogueResponses(
   payload: SuggestDialogueResponsesPayload,
 ) {
   return http<{
-    suggestions: string[];
+    suggestions: DialogueTreeSuggestionItem[];
     creditsRemaining: number;
   }>("/api/dialogue-trees/suggest", {
     method: "POST",
@@ -89,3 +98,34 @@ export async function saveWordFromTree(payload: SaveWordFromTreePayload) {
     body: payload,
   });
 }
+
+export interface TranslateWordPayload {
+  word: string;
+  contextPhrase?: string;
+  sourceLanguage?: string;
+  targetLanguage: string;
+}
+
+export async function translateWordFromTree(payload: TranslateWordPayload) {
+  return http<{ translation: string }>("/api/dialogue-trees/translate-word", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export interface TranslatePhrasePayload {
+  phrase: string;
+  sourceLanguage?: string;
+  targetLanguage: string;
+}
+
+export async function translatePhraseFromTree(payload: TranslatePhrasePayload) {
+  return http<{ translation: string }>(
+    "/api/dialogue-trees/translate-phrase",
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+

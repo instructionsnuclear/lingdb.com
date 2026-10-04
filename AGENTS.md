@@ -84,7 +84,7 @@ Interactive branching conversation builder helping learners discover dialogue co
 ### Architecture & Components
 - **Page Route**: `/[locale]/dialogue-trees`
 - **Canvas (`DialogueTreeCanvas.tsx`)**: Infinite pan & zoom canvas (centered focal mouse-wheel zoom, spacebar/middle-click drag, dot grid background, auto-layout, dnd-kit draggable node context with scale compensation).
-- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), header drag handle (`GripVertical`), audio pronunciation icon button (`Volume2`), pencil inline edit tool, sparkle AI ideas trigger, and delete button. Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
+- **Node Cards (`DialogueTreeNodeCard.tsx`)**: Glassmorphic cards with Speaker badges (`Prompt (Root)`, `Speaker A`, `Speaker B`), header drag handle (`GripVertical`), audio pronunciation icon button (`Volume2`), pencil inline edit tool, sparkle AI ideas trigger, delete button, and a translation toggle/on-demand translation icon button (`Languages`) at the bottom-right of every phrase (instantly displays saved translation, or translates manually entered phrases on demand via `OPENROUTER_TRANSLATION_MODEL` and persists to tree). Elevated stacking (`z-index: 50`) prevents boxes from appearing behind neighbor cards.
 - **Audio Pronunciation (`speechSynthesis`)**: Consistent with the Playground, nodes and generated AI suggestion phrases feature audio pronunciation buttons (`Volume2`) using Web Speech API synthesis configured with the tree's target language (e.g. `de-DE`, `es-ES`, `fr-FR`, `en-US`, `tr-TR`) with active pulse animations and cancellation handling.
 - **Connections (`DialogueTreeConnections.tsx`) & Smart Routing (`smart-arrow.ts`)**: Procedural, obstacle-aware cubic Bezier paths that dynamically recalculate in real-time as phrase blocks move in 2D space. Clean, crisp curves without glow or arrowheads flush to card boundaries.
 - **Link Handles**: Hoverable/clickable right-side arrow handle with `+` icon on every card to branch out custom responses infinitely. Anchored directly to the phrase card's vertical center.
@@ -93,14 +93,17 @@ Interactive branching conversation builder helping learners discover dialogue co
   - Prompts OpenRouter to suggest 3 distinct, natural continuations.
   - **Scenario Meta Context (Fake RAG Memory Border)**: Users can define custom background scenario context, character roles, and domain knowledge (max 5,000 characters). This functions as memory guardrails/borders to keep suggestions strictly in character/context without hijacking organic conversational flow.
   - **CEFR Language Level Guidance**: Allows choosing language proficiency levels from A1 (Beginner) to C2 (Mastery) to calibrate vocabulary complexity and grammatical depth.
+  - **Contextual Translations in Website Language**: Continuations are generated with high-quality translations matching the current global website locale (e.g. `tr`, `en`, `de`, `es`, `fr`), rendered beneath each phrase as tiny gray text.
   - **Settings Modal (`DialogueTreeSettingsModal.tsx`)**: Accessed via the top-bar gear button on the canvas, or set upon tree creation via the selector/creation modals.
   - Credit consumption: Auto-generated continuations (on adding a phrase or editing text) do NOT consume AI credits. Only manual refresh via the refresh icon button consumes 1 AI credit.
-  - Rate limiting: Strictly rate-limited to 5 AI generations per minute and 30 generations per hour via `checkRateLimit` and `activityLogs`.
+  - Rate limiting: Rate-limited via `checkRateLimit` and `activityLogs`. Regular users: 5 generations/minute, 30/hour. Admins: 60 generations/minute, 500 generations/hour with unlimited refreshes.
   - Multi-box support: Multiple suggestion boxes can remain open simultaneously with independent close (`X`) buttons. Re-opening a box preserves previous suggestions without redundant AI calls.
 - **Word Highlighting & Direct Word Save (`DialoguePhraseWords.tsx`)**:
   - Words existing in any user dictionary appear in **bold orange** (`text-amber-500 font-bold`).
-  - Unsaved words are directly clickable. Clicking opens a React Portalled (`createPortal`) dictionary selector right beneath the word (immune to canvas CSS transforms).
-  - Saving generates an AI translation in the phrase's context and adds the word to the target dictionary via `/api/dialogue-trees/save-word`.
+  - Both saved and unsaved words are clickable. Clicking opens a React Portalled (`createPortal`) dictionary and translation popup right beneath the word (immune to canvas CSS transforms) featuring an audio pronunciation button (`Volume2`) in the top-right header to listen to the word solely.
+  - **Instant Word Translation**: Clicking any word automatically displays its contextual translation right next to the word header in the portal popup (e.g. `"besser" • daha iyi`). If previously saved, it loads instantly from dictionary metadata; otherwise, it translates via `OPENROUTER_TRANSLATION_MODEL` (`/api/dialogue-trees/translate-word`).
+  - Saving reuses the existing/in-flight translation immediately (bypassing AI re-translation for instant saves), or generates one if missing, and adds the word to the target dictionary via `/api/dialogue-trees/save-word`.
+  - **Duplicate Prevention & Quick Removal**: Dictionaries already containing the word cannot be clicked again to save duplicates, display an orange check icon, and feature an inline `X` icon button to immediately delete the word from that dictionary via `/api/words/[id]` with real-time state updates across the canvas.
 
 ---
 

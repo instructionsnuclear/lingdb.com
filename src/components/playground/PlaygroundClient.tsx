@@ -115,10 +115,29 @@ export default function PlaygroundClient({
   // Disable page/body scroll on playground only when activePack is loaded for infinite canvas camera
   useEffect(() => {
     if (!activePack) return;
-    const prevOverflow = document.body.style.overflow;
+
+    const scrollToTop = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }
+    };
+
+    scrollToTop();
+    const rafId = requestAnimationFrame(scrollToTop);
+    window.addEventListener("scroll", scrollToTop, { passive: true });
+
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
     return () => {
-      document.body.style.overflow = prevOverflow;
+      cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", scrollToTop);
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
     };
   }, [activePack]);
 

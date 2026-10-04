@@ -745,6 +745,9 @@
       "deleteFailed": "No se pudo eliminar el árbol",
       "wordSaved": "¡Guardado «{word}» ({translation}) en {dict}!",
       "wordSaveFailed": "No se pudo guardar la palabra. Inténtalo de nuevo.",
+      "wordRemoved": "¡Eliminado «{word}» de {dict}!",
+      "wordDeleteFailed": "No se pudo eliminar la palabra. Inténtalo de nuevo.",
+      "translateFailed": "No se pudo traducir la frase. Inténtalo de nuevo.",
       "needDicts": "¡Crea primero un diccionario para guardar palabras!",
       "settingsSaved": "¡Ajustes del árbol de diálogo actualizados!",
       "settingsSaveFailed": "No se pudieron actualizar los ajustes. Inténtalo de nuevo."
@@ -793,8 +796,12 @@
     "inDictionaryTooltip": "En el diccionario: «{dict}» ({translation})",
     "clickToSaveTooltip": "Haz clic para guardar «{word}» en el diccionario",
     "saveWordTo": "Guardar palabra en el diccionario:",
+    "removeWordFromDict": "Eliminar palabra de este diccionario",
     "savingWord": "Traduciendo y guardando...",
     "pronouncePhrase": "Pronunciar frase",
+    "showTranslation": "Mostrar traducción de la frase",
+    "hideTranslation": "Ocultar traducción de la frase",
+    "translatingPhrase": "Traduciendo frase...",
     "speechNotSupported": "La síntesis de voz no es compatible con su navegador."
   },
   "tools": {

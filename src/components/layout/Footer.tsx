@@ -34,8 +34,12 @@ export default function Footer({ locale = "en" }: { locale?: string }) {
     }))
   ).filter((link) => link.enabled);
 
-  // Hide footer on playground infinite canvas page or admin panel
-  if (pathname?.includes("/playground") || pathname?.includes("/admin")) {
+  // Hide footer on playground or dialogue-trees infinite canvas page or admin panel
+  if (
+    pathname?.includes("/playground") ||
+    pathname?.includes("/dialogue-trees") ||
+    pathname?.includes("/admin")
+  ) {
     return null;
   }
 

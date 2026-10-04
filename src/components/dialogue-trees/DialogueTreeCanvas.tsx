@@ -43,11 +43,12 @@ import {
 import {
   updateDialogueTree,
   suggestDialogueResponses,
+  type DialogueTreeSuggestionItem,
 } from "@/lib/api/dialogue-trees.api";
 import { useToast } from "@/components/ui/Toast";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils/cn";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 interface DialogueTreeCanvasProps {
   tree: DialogueTree;
@@ -56,6 +57,11 @@ interface DialogueTreeCanvasProps {
   aiCredits: number;
   onBackToSelector: () => void;
   onWordSaved: (word: Word, dictTitle: string) => void;
+  onWordDeleted?: (
+    wordId: string,
+    cleanedWord: string,
+    dictionaryId: string,
+  ) => void;
   onTreeUpdated: (updatedTree: DialogueTree) => void;
   onCreditsUpdated: (credits: number) => void;
 }
@@ -67,10 +73,12 @@ export default function DialogueTreeCanvas({
   aiCredits,
   onBackToSelector,
   onWordSaved,
+  onWordDeleted,
   onTreeUpdated,
   onCreditsUpdated,
 }: DialogueTreeCanvasProps) {
   const t = useTranslations("dialogueTrees");
+  const locale = useLocale();
   const { toast } = useToast();
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -132,7 +140,7 @@ export default function DialogueTreeCanvas({
 
   // AI Suggestions state: maps nodeId -> suggestions array
   const [suggestionsMap, setSuggestionsMap] = useState<
-    Record<string, string[]>
+    Record<string, DialogueTreeSuggestionItem[]>
   >({});
   const [generatingForNodeId, setGeneratingForNodeId] = useState<string | null>(
     null,
@@ -197,6 +205,13 @@ export default function DialogueTreeCanvas({
     },
     [tree.language, speakingText, t, toast],
   );
+
+  // Ensure viewport is scrolled to top on mount so top controls bar is never hidden
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
 
   // Stop any ongoing speech when unmounting
   useEffect(() => {
@@ -360,6 +375,7 @@ export default function DialogueTreeCanvas({
           isRefresh,
           metaContext: tree.metaContext,
           level: tree.level,
+          translationLanguage: locale,
         });
 
         setSuggestionsMap((prev) => ({
@@ -380,7 +396,7 @@ export default function DialogueTreeCanvas({
         setGeneratingForNodeId(null);
       }
     },
-    [nodes, tree.language, tree.metaContext, tree.level, onCreditsUpdated, toast],
+    [nodes, tree.language, tree.metaContext, tree.level, locale, onCreditsUpdated, toast],
   );
 
   // Toggle suggestions box: keeps previously generated suggestions if they exist!
@@ -423,7 +439,7 @@ export default function DialogueTreeCanvas({
 
   // Handle adding a new phrase (custom typed or accepted from AI)
   const handleAddPhrase = useCallback(
-    (parentId: string, phraseText: string) => {
+    (parentId: string, phraseText: string, translationText?: string) => {
       const trimmed = phraseText.trim();
       if (!trimmed) return;
 
@@ -444,6 +460,7 @@ export default function DialogueTreeCanvas({
         id: newNodeId,
         parentId,
         text: trimmed,
+        translation: translationText?.trim() || undefined,
         childrenIds: [],
         x: parentNode.x + 450,
         y: newY,
@@ -533,7 +550,7 @@ export default function DialogueTreeCanvas({
 
       const updatedNodes = nodes.map((n) => {
         if (n.id === nodeId) {
-          return { ...n, text: trimmed };
+          return { ...n, text: trimmed, translation: undefined };
         }
         return n;
       });
@@ -550,6 +567,22 @@ export default function DialogueTreeCanvas({
     [nodes, triggerAutoSave, fetchSuggestionsForNode, toast],
   );
 
+  // Handle updating a node's translation (e.g. from manual translation model call)
+  const handleUpdateNodeTranslation = useCallback(
+    (nodeId: string, translation: string) => {
+      const updatedNodes = nodes.map((n) => {
+        if (n.id === nodeId) {
+          return { ...n, translation };
+        }
+        return n;
+      });
+
+      setNodes(updatedNodes);
+      triggerAutoSave(updatedNodes);
+    },
+    [nodes, triggerAutoSave],
+  );
+
   // Center camera on root or active node
   const handleResetCamera = useCallback(() => {
     setPan({ x: 40, y: 40 });
@@ -563,6 +596,16 @@ export default function DialogueTreeCanvas({
     if (!viewport) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // If wheel event is inside an editable input/textarea or menu/popup, do not zoom canvas
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.closest?.(
+          "textarea, input, select, [data-dialogue-tree-menu], [data-no-canvas-zoom]",
+        )
+      ) {
+        return;
+      }
+
       e.preventDefault();
       const rect = viewport.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
@@ -690,7 +733,7 @@ export default function DialogueTreeCanvas({
   );
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] overflow-hidden select-none bg-[var(--bg)]">
+    <div className="relative w-full h-[calc(100dvh-4rem)] max-h-[calc(100dvh-4rem)] overflow-hidden select-none bg-[var(--bg)]">
       {/* ─── Floating Top Controls Bar ─── */}
       <div className="absolute top-4 left-4 right-4 z-30 pointer-events-none flex items-center justify-between gap-4">
         {/* Left Side: Back button + Tree Title + Language badge */}
@@ -833,6 +876,7 @@ export default function DialogueTreeCanvas({
                 <DialogueTreeNodeCard
                   key={node.id}
                   node={node}
+                  treeLanguage={tree.language}
                   depth={depth}
                   isSelected={selectedNodeId === node.id}
                   isLatest={false}
@@ -847,18 +891,20 @@ export default function DialogueTreeCanvas({
                   onSpeak={handleSpeak}
                   onBringToFront={() => bringToFront(node.id)}
                   onWordSaved={onWordSaved}
+                  onWordDeleted={onWordDeleted}
                   onSelectNode={(id) => setSelectedNodeId(id)}
                   onClickAddLink={(id) => {
                     setAddingResponseParentId(id);
                     setNewPhraseInput("");
                   }}
-                  onAcceptSuggestion={(parentId, suggText) => {
-                    handleAddPhrase(parentId, suggText);
+                  onAcceptSuggestion={(parentId, suggText, suggTranslation) => {
+                    handleAddPhrase(parentId, suggText, suggTranslation);
                   }}
                   onToggleSuggestions={handleToggleSuggestions}
                   onCloseSuggestions={handleCloseSuggestions}
                   onRegenerateSuggestions={handleRegenerateSuggestions}
                   onUpdateNodeText={handleUpdateNodeText}
+                  onUpdateNodeTranslation={handleUpdateNodeTranslation}
                   onDeleteNode={handleDeleteNode}
                 />
               );

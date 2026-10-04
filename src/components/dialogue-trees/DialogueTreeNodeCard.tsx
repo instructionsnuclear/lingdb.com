@@ -14,22 +14,29 @@ import {
   RefreshCw,
   Loader2,
   GripVertical,
+  Languages,
 } from "lucide-react";
 import type { DialogueTreeNode, Word } from "@/lib/db/schema";
+import {
+  type DialogueSuggestion,
+  translatePhraseFromTree,
+} from "@/lib/api/dialogue-trees.api";
 import DialoguePhraseWords, {
   type SavedWordInfo,
   type UserDictionaryMeta,
 } from "./DialoguePhraseWords";
 import { cn } from "@/lib/utils/cn";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
+import { useToast } from "@/components/ui/Toast";
 
 interface DialogueTreeNodeCardProps {
   node: DialogueTreeNode;
+  treeLanguage?: string;
   depth: number;
   isSelected: boolean;
   isLatest: boolean;
   isSuggestionsOpen: boolean;
-  aiSuggestions?: string[];
+  aiSuggestions?: DialogueSuggestion[];
   isGeneratingSuggestions: boolean;
   savedWordsMap: Map<string, SavedWordInfo>;
   userDictionaries: UserDictionaryMeta[];
@@ -39,18 +46,29 @@ interface DialogueTreeNodeCardProps {
   onSpeak?: (text: string) => void;
   onBringToFront?: () => void;
   onWordSaved: (word: Word, dictTitle: string) => void;
+  onWordDeleted?: (
+    wordId: string,
+    cleanedWord: string,
+    dictionaryId: string,
+  ) => void;
   onSelectNode: (nodeId: string) => void;
   onClickAddLink: (nodeId: string) => void;
-  onAcceptSuggestion: (parentId: string, suggestionText: string) => void;
+  onAcceptSuggestion: (
+    parentId: string,
+    suggestionText: string,
+    translationText?: string,
+  ) => void;
   onToggleSuggestions: (nodeId: string) => void;
   onCloseSuggestions: (nodeId: string) => void;
   onRegenerateSuggestions: (nodeId: string) => void;
   onUpdateNodeText: (nodeId: string, newText: string) => void;
+  onUpdateNodeTranslation?: (nodeId: string, translation: string) => void;
   onDeleteNode?: (nodeId: string) => void;
 }
 
 function DialogueTreeNodeCard({
   node,
+  treeLanguage,
   depth,
   isSelected,
   isLatest,
@@ -65,6 +83,7 @@ function DialogueTreeNodeCard({
   onSpeak,
   onBringToFront,
   onWordSaved,
+  onWordDeleted,
   onSelectNode,
   onClickAddLink,
   onAcceptSuggestion,
@@ -72,12 +91,45 @@ function DialogueTreeNodeCard({
   onCloseSuggestions,
   onRegenerateSuggestions,
   onUpdateNodeText,
+  onUpdateNodeTranslation,
   onDeleteNode,
 }: DialogueTreeNodeCardProps) {
   const t = useTranslations("dialogueTrees");
+  const locale = useLocale();
+  const { toast } = useToast();
   const isRoot = node.parentId === null;
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(node.text);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [isTranslatingPhrase, setIsTranslatingPhrase] = useState(false);
+
+  const handleToggleOrFetchTranslation = async () => {
+    // If translation already exists on node, toggle visibility
+    if (node.translation) {
+      setShowTranslation((prev) => !prev);
+      return;
+    }
+
+    // Otherwise translate phrase using the translation model
+    setIsTranslatingPhrase(true);
+    try {
+      const res = await translatePhraseFromTree({
+        phrase: node.text,
+        sourceLanguage: treeLanguage,
+        targetLanguage: locale,
+      });
+
+      if (res?.translation) {
+        onUpdateNodeTranslation?.(node.id, res.translation);
+        setShowTranslation(true);
+      }
+    } catch (err: unknown) {
+      console.error("Failed to translate phrase:", err);
+      toast(t("toasts.translateFailed"), "error");
+    } finally {
+      setIsTranslatingPhrase(false);
+    }
+  };
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -274,12 +326,18 @@ function DialogueTreeNodeCard({
           {isEditing ? (
             <div
               className="mt-1 space-y-2"
+              data-no-canvas-zoom
               onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onWheel={(e) => e.stopPropagation()}
             >
               <textarea
+                data-no-canvas-zoom
                 rows={2}
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
+                onWheel={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -289,7 +347,7 @@ function DialogueTreeNodeCard({
                     setEditText(node.text);
                   }
                 }}
-                className="w-full p-2.5 text-sm font-semibold rounded-2xl border border-primary-500/50 bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-primary-500/40 resize-none transition-all leading-relaxed"
+                className="w-full p-2.5 text-sm font-semibold rounded-2xl border border-primary-500/50 bg-[var(--bg)] text-[var(--fg)] focus:outline-none focus:ring-2 focus:ring-primary-500/40 resize-none transition-all leading-relaxed overflow-y-auto overscroll-contain max-h-36"
                 autoFocus
               />
               <div className="flex items-center justify-end gap-1.5">
@@ -316,13 +374,61 @@ function DialogueTreeNodeCard({
               </div>
             </div>
           ) : (
-            <div className="text-base font-semibold tracking-tight text-[var(--fg)] min-h-[2.5rem]">
-              <DialoguePhraseWords
-                phrase={node.text}
-                savedWordsMap={savedWordsMap}
-                userDictionaries={userDictionaries}
-                onWordSaved={onWordSaved}
-              />
+            <div className="space-y-1.5">
+              <div className="text-base font-semibold tracking-tight text-[var(--fg)] min-h-[2.5rem]">
+                <DialoguePhraseWords
+                  phrase={node.text}
+                  sourceLanguage={treeLanguage}
+                  savedWordsMap={savedWordsMap}
+                  userDictionaries={userDictionaries}
+                  onWordSaved={onWordSaved}
+                  onWordDeleted={onWordDeleted}
+                />
+              </div>
+
+              {/* Translation Display & Toggle / On-Demand Translation Icon Button */}
+              <div className="pt-0.5">
+                {showTranslation && node.translation && (
+                  <div className="text-xs text-[var(--fg)]/70 font-normal leading-relaxed pb-1 pt-1.5 border-t border-[var(--border-color)]/50 animate-in fade-in slide-in-from-top-1 duration-150 select-text">
+                    {node.translation}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end">
+                  <button
+                    type="button"
+                    disabled={isTranslatingPhrase}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleOrFetchTranslation();
+                    }}
+                    title={
+                      isTranslatingPhrase
+                        ? t("translatingPhrase")
+                        : showTranslation && node.translation
+                          ? t("hideTranslation")
+                          : t("showTranslation")
+                    }
+                    aria-label={
+                      showTranslation && node.translation
+                        ? t("hideTranslation")
+                        : t("showTranslation")
+                    }
+                    className={cn(
+                      "p-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-90 disabled:opacity-50",
+                      showTranslation && node.translation
+                        ? "text-primary-500 bg-primary-500/15"
+                        : "text-[var(--fg)]/35 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
+                    )}
+                  >
+                    {isTranslatingPhrase ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-primary-500" />
+                    ) : (
+                      <Languages className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -356,9 +462,11 @@ function DialogueTreeNodeCard({
         {isSuggestionsOpen &&
           (isGeneratingSuggestions ||
             (aiSuggestions && aiSuggestions.length > 0)) && (
-            <div
+             <div
+              data-no-canvas-zoom
               onClick={(e) => e.stopPropagation()}
-              className="mt-3 w-[320px] p-3 rounded-2xl bg-[var(--surface)]/95 border border-primary-500/40 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200 z-50 relative"
+              onWheel={(e) => e.stopPropagation()}
+              className="mt-3 w-[320px] p-3 rounded-2xl bg-[var(--surface)]/95 border border-primary-500/40 shadow-2xl backdrop-blur-2xl animate-in fade-in slide-in-from-top-2 duration-200 z-50 relative overscroll-contain max-h-[360px] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-primary-600 dark:text-primary-400">
@@ -400,56 +508,85 @@ function DialogueTreeNodeCard({
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {aiSuggestions?.map((sugg, i) => (
-                    <div
-                      key={i}
-                      className="group/sugg w-full p-2.5 rounded-xl border border-[var(--border-color)] hover:border-primary-500/60 bg-[var(--bg)]/60 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-all text-xs text-[var(--fg)] font-medium flex items-center justify-between gap-2 shadow-sm"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onAcceptSuggestion(node.id, sugg)}
-                        className="flex-1 text-left leading-snug cursor-pointer"
+                  {aiSuggestions?.map((sugg, i) => {
+                    const phraseText =
+                      typeof sugg === "string" ? sugg : sugg.phrase;
+                    const translationText =
+                      typeof sugg === "object" && sugg
+                        ? sugg.translation
+                        : undefined;
+
+                    return (
+                      <div
+                        key={i}
+                        className="group/sugg w-full p-2.5 rounded-xl border border-[var(--border-color)] hover:border-primary-500/60 bg-[var(--bg)]/60 hover:bg-primary-50/50 dark:hover:bg-primary-950/30 transition-all text-xs text-[var(--fg)] font-medium flex items-center justify-between gap-2 shadow-sm"
                       >
-                        {sugg}
-                      </button>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {onSpeak && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSpeak(sugg);
-                            }}
-                            title={t("pronouncePhrase")}
-                            aria-label={t("pronouncePhrase")}
-                            className={cn(
-                              "p-1 rounded-lg transition-all active:scale-90 cursor-pointer",
-                              speakingText === sugg
-                                ? "text-primary-500 bg-primary-500/15"
-                                : "text-[var(--fg)]/40 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
-                            )}
-                          >
-                            <Volume2
-                              className={cn(
-                                "w-3.5 h-3.5",
-                                speakingText === sugg && "animate-pulse text-primary-500",
-                              )}
-                            />
-                          </button>
-                        )}
-
                         <button
                           type="button"
-                          onClick={() => onAcceptSuggestion(node.id, sugg)}
-                          title={t("addResponseTooltip")}
-                          className="w-5 h-5 rounded-full bg-primary-500/10 group-hover/sugg:bg-primary-500 group-hover/sugg:text-white text-primary-600 dark:text-primary-300 flex items-center justify-center transition-colors cursor-pointer"
+                          onClick={() =>
+                            onAcceptSuggestion(
+                              node.id,
+                              phraseText,
+                              translationText,
+                            )
+                          }
+                          className="flex-1 text-left leading-snug cursor-pointer flex flex-col items-start gap-0.5 min-w-0"
                         >
-                          <Plus className="w-3 h-3" />
+                          <span className="font-medium text-[var(--fg)] break-words">
+                            {phraseText}
+                          </span>
+                          {translationText ? (
+                            <span className="text-[11px] leading-snug text-[var(--fg)]/50 font-normal break-words">
+                              {translationText}
+                            </span>
+                          ) : null}
                         </button>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          {onSpeak && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSpeak(phraseText);
+                              }}
+                              title={t("pronouncePhrase")}
+                              aria-label={t("pronouncePhrase")}
+                              className={cn(
+                                "p-1 rounded-lg transition-all active:scale-90 cursor-pointer",
+                                speakingText === phraseText
+                                  ? "text-primary-500 bg-primary-500/15"
+                                  : "text-[var(--fg)]/40 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-500/10",
+                              )}
+                            >
+                              <Volume2
+                                className={cn(
+                                  "w-3.5 h-3.5",
+                                  speakingText === phraseText &&
+                                    "animate-pulse text-primary-500",
+                                )}
+                              />
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onAcceptSuggestion(
+                                node.id,
+                                phraseText,
+                                translationText,
+                              )
+                            }
+                            title={t("addResponseTooltip")}
+                            className="w-5 h-5 rounded-full bg-primary-500/10 group-hover/sugg:bg-primary-500 group-hover/sugg:text-white text-primary-600 dark:text-primary-300 flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

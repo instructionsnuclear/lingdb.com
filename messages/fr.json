@@ -745,6 +745,9 @@
       "deleteFailed": "Impossible de supprimer l'arbre",
       "wordSaved": "« {word} » ({translation}) enregistré dans {dict} !",
       "wordSaveFailed": "Impossible d'enregistrer le mot. Veuillez réessayer.",
+      "wordRemoved": "« {word} » supprimé de {dict} !",
+      "wordDeleteFailed": "Impossible de supprimer le mot. Veuillez réessayer.",
+      "translateFailed": "Impossible de traduire la phrase. Veuillez réessayer.",
       "needDicts": "Créez d'abord un dictionnaire pour enregistrer des mots !",
       "settingsSaved": "Paramètres de l'arbre de dialogue mis à jour !",
       "settingsSaveFailed": "Impossible de mettre à jour les paramètres. Veuillez réessayer."
@@ -793,8 +796,12 @@
     "inDictionaryTooltip": "Dans le dictionnaire : « {dict} » ({translation})",
     "clickToSaveTooltip": "Cliquer pour enregistrer « {word} » dans le dictionnaire",
     "saveWordTo": "Enregistrer le mot dans le dictionnaire :",
+    "removeWordFromDict": "Supprimer le mot de ce dictionnaire",
     "savingWord": "Traduction & enregistrement...",
     "pronouncePhrase": "Prononcer la phrase",
+    "showTranslation": "Afficher la traduction de la phrase",
+    "hideTranslation": "Masquer la traduction de la phrase",
+    "translatingPhrase": "Traduction de la phrase...",
     "speechNotSupported": "La synthèse vocale n'est pas prise en charge par votre navigateur."
   },
   "tools": {

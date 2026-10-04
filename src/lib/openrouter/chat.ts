@@ -7,6 +7,7 @@ type OpenRouterChatOptions = {
   apiKey: string;
   messages: OpenRouterMessage[];
   extraBody?: Record<string, unknown>;
+  model?: string;
 };
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -42,10 +43,12 @@ export async function fetchOpenRouterChatCompletion({
   apiKey,
   messages,
   extraBody,
+  model,
 }: OpenRouterChatOptions) {
   const { primaryModel, fallbackModel } = getOpenRouterModels();
+  const selectedModel = model?.trim() || primaryModel;
 
-  const requestWithModel = async (model: string) =>
+  const requestWithModel = async (m: string) =>
     fetch(OPENROUTER_URL, {
       method: "POST",
       headers: {
@@ -57,15 +60,15 @@ export async function fetchOpenRouterChatCompletion({
         "X-Title": "Lingdb",
       },
       body: JSON.stringify({
-        model,
+        model: m,
         messages,
         ...(extraBody || {}),
       }),
     });
 
-  const primaryResponse = await requestWithModel(primaryModel);
+  const primaryResponse = await requestWithModel(selectedModel);
 
-  if (primaryResponse.ok || !fallbackModel || fallbackModel === primaryModel) {
+  if (primaryResponse.ok || !fallbackModel || fallbackModel === selectedModel) {
     return primaryResponse;
   }
 
@@ -75,7 +78,7 @@ export async function fetchOpenRouterChatCompletion({
   }
 
   console.warn(
-    `Primary OpenRouter model '${primaryModel}' unavailable, retrying with fallback '${fallbackModel}'.`,
+    `OpenRouter model '${selectedModel}' unavailable, retrying with fallback '${fallbackModel}'.`,
   );
 
   return requestWithModel(fallbackModel);

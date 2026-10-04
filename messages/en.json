@@ -745,6 +745,9 @@
       "deleteFailed": "Could not delete tree",
       "wordSaved": "Saved \"{word}\" ({translation}) to {dict}!",
       "wordSaveFailed": "Could not save word. Please try again.",
+      "wordRemoved": "Removed \"{word}\" from {dict}!",
+      "wordDeleteFailed": "Could not remove word. Please try again.",
+      "translateFailed": "Could not translate phrase. Please try again.",
       "needDicts": "Create a dictionary first to save words!",
       "settingsSaved": "Dialogue tree settings updated!",
       "settingsSaveFailed": "Could not update settings. Please try again."
@@ -793,8 +796,12 @@
     "inDictionaryTooltip": "In dictionary: \"{dict}\" ({translation})",
     "clickToSaveTooltip": "Click to save \"{word}\" to dictionary",
     "saveWordTo": "Save word to dictionary:",
+    "removeWordFromDict": "Remove word from this dictionary",
     "savingWord": "Translating & saving...",
     "pronouncePhrase": "Pronounce phrase",
+    "showTranslation": "Show phrase translation",
+    "hideTranslation": "Hide phrase translation",
+    "translatingPhrase": "Translating phrase...",
     "speechNotSupported": "Speech synthesis not supported in your browser."
   },
   "tools": {
