@@ -142,6 +142,8 @@ export default function DialogueTreeCanvas({
   panRef.current = pan;
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
 
   // Auto-save debounce state
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
@@ -306,7 +308,11 @@ export default function DialogueTreeCanvas({
 
   // Debounced auto-save function
   const triggerAutoSave = useCallback(
-    (newNodes: DialogueTreeNode[], newPan = pan, newZoom = zoom) => {
+    (
+      newNodes: DialogueTreeNode[],
+      newPan = panRef.current,
+      newZoom = zoomRef.current,
+    ) => {
       pendingUpdateRef.current = {
         nodes: newNodes,
         pan: newPan,
@@ -337,7 +343,7 @@ export default function DialogueTreeCanvas({
         }
       }, 700);
     },
-    [pan, zoom, tree.id, onTreeUpdated],
+    [tree.id, onTreeUpdated],
   );
 
   const handleDragEnd = useCallback(
@@ -844,19 +850,20 @@ export default function DialogueTreeCanvas({
 
     const target = e.target as HTMLElement;
     const isInteractive = target.closest(
-      "button, input, textarea, select, a, [data-dialogue-node]",
+      "button, input, textarea, select, a, [data-dialogue-node], [data-no-pan]",
     );
 
     if (isInteractive && e.button !== 1 && !isSpacePressed) {
       return;
     }
 
+    e.preventDefault();
     setIsPanning(true);
     panStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startPanX: pan.x,
-      startPanY: pan.y,
+      startPanX: panRef.current.x,
+      startPanY: panRef.current.y,
     };
   };
 
@@ -875,6 +882,7 @@ export default function DialogueTreeCanvas({
       if (isPanning) {
         setIsPanning(false);
         panStartRef.current = null;
+        triggerAutoSave(nodesRef.current, panRef.current, zoomRef.current);
       }
     };
 
@@ -886,7 +894,153 @@ export default function DialogueTreeCanvas({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [isPanning]);
+  }, [isPanning, triggerAutoSave]);
+
+  // ─── Touch Panning & Multi-touch Pinch Zoom for Mobile ───────────────────
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    let touchPanStart: {
+      startX: number;
+      startY: number;
+      startPanX: number;
+      startPanY: number;
+    } | null = null;
+
+    let pinchStart: {
+      initialDistance: number;
+      initialMidX: number;
+      initialMidY: number;
+      initialZoom: number;
+      initialPan: { x: number; y: number };
+    } | null = null;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const target = touch.target as HTMLElement | null;
+        const isInteractive = target?.closest?.(
+          "button, input, textarea, select, a, [data-dialogue-node], [data-no-pan]",
+        );
+
+        if (isInteractive) {
+          touchPanStart = null;
+          return;
+        }
+
+        setIsPanning(true);
+        touchPanStart = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+        pinchStart = null;
+      } else if (e.touches.length === 2) {
+        // Multi-touch pinch-to-zoom & two-finger pan
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const rect = viewport.getBoundingClientRect();
+        const dist = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY,
+        );
+        const midX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+        const midY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+
+        pinchStart = {
+          initialDistance: dist,
+          initialMidX: midX,
+          initialMidY: midY,
+          initialZoom: zoomRef.current,
+          initialPan: { ...panRef.current },
+        };
+        touchPanStart = null;
+        setIsPanning(true);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (pinchStart && e.touches.length >= 2) {
+        if (e.cancelable) e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const rect = viewport.getBoundingClientRect();
+        const dist = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY,
+        );
+        const currentMidX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+        const currentMidY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+
+        if (pinchStart.initialDistance > 0) {
+          const factor = dist / pinchStart.initialDistance;
+          const nextZoom = Math.min(
+            2.5,
+            Math.max(0.25, Math.round(pinchStart.initialZoom * factor * 100) / 100),
+          );
+
+          const canvasX =
+            (pinchStart.initialMidX - pinchStart.initialPan.x) /
+            pinchStart.initialZoom;
+          const canvasY =
+            (pinchStart.initialMidY - pinchStart.initialPan.y) /
+            pinchStart.initialZoom;
+
+          const nextPan = {
+            x: Math.round(currentMidX - canvasX * nextZoom),
+            y: Math.round(currentMidY - canvasY * nextZoom),
+          };
+
+          setZoom(nextZoom);
+          setPan(nextPan);
+        }
+      } else if (touchPanStart && e.touches.length === 1) {
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchPanStart.startX;
+        const dy = touch.clientY - touchPanStart.startY;
+        setPan({
+          x: Math.round(touchPanStart.startPanX + dx),
+          y: Math.round(touchPanStart.startPanY + dy),
+        });
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        if (touchPanStart || pinchStart) {
+          setIsPanning(false);
+          touchPanStart = null;
+          pinchStart = null;
+          triggerAutoSave(nodesRef.current, panRef.current, zoomRef.current);
+        }
+      } else if (e.touches.length === 1) {
+        // Transitioned from 2-finger pinch to 1 finger: smoothly continue panning with remaining finger
+        const touch = e.touches[0];
+        pinchStart = null;
+        touchPanStart = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+      }
+    };
+
+    viewport.addEventListener("touchstart", handleTouchStart, { passive: false });
+    viewport.addEventListener("touchmove", handleTouchMove, { passive: false });
+    viewport.addEventListener("touchend", handleTouchEnd, { passive: false });
+    viewport.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+    return () => {
+      viewport.removeEventListener("touchstart", handleTouchStart);
+      viewport.removeEventListener("touchmove", handleTouchMove);
+      viewport.removeEventListener("touchend", handleTouchEnd);
+      viewport.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [triggerAutoSave]);
 
   // Spacebar pan shortcut
   useEffect(() => {
@@ -1133,7 +1287,7 @@ export default function DialogueTreeCanvas({
         style={{
           cursor: isPanning ? "grabbing" : isSpacePressed ? "grab" : "default",
         }}
-        className="w-full h-full relative overflow-hidden"
+        className="w-full h-full relative overflow-hidden touch-none select-none"
       >
         {/* Background Dot Grid (Identical to Playground) */}
         <div
@@ -1155,10 +1309,11 @@ export default function DialogueTreeCanvas({
           {/* Scaled & Panned Canvas Layer */}
           <div
             style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+              transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})`,
               transformOrigin: "0 0",
+              willChange: isPanning ? "transform" : "auto",
             }}
-            className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+            className="absolute top-0 left-0 w-full h-full pointer-events-none"
           >
             {/* SVG Connection Lines (smart procedural path recalculation in real time) */}
             <DialogueTreeConnections
@@ -1167,7 +1322,8 @@ export default function DialogueTreeCanvas({
             />
 
             {/* Tree Phrase Node Cards */}
-            {nodes.map((node) => {
+            <div className="pointer-events-auto">
+              {nodes.map((node) => {
               const depth = getNodeDepth(nodes, node.id);
               return (
                 <DialogueTreeNodeCard
@@ -1208,6 +1364,7 @@ export default function DialogueTreeCanvas({
                 />
               );
             })}
+            </div>
           </div>
         </DndContext>
       </div>

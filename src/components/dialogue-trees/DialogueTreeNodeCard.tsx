@@ -224,7 +224,7 @@ function DialogueTreeNodeCard({
           <div
             {...listeners}
             {...attributes}
-            className="flex items-center justify-between gap-2 mb-2.5 cursor-grab active:cursor-grabbing rounded-xl p-1 -m-1 hover:bg-[var(--fg)]/5 transition-colors"
+            className="flex items-center justify-between gap-2 mb-2.5 cursor-grab active:cursor-grabbing rounded-xl p-1 -m-1 hover:bg-[var(--fg)]/5 transition-colors touch-none"
           >
             <div className="flex items-center gap-1.5 min-w-0">
               <GripVertical className="w-3.5 h-3.5 text-[var(--fg)]/30 hover:text-[var(--fg)]/70 transition-colors shrink-0" />

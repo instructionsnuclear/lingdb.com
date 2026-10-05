@@ -195,6 +195,11 @@ export default function PlaygroundCanvas({
     startPanY: number;
   } | null>(null);
 
+  const panRef = useRef(pan);
+  panRef.current = pan;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+
   const savePanToStorage = useCallback(
     (newPan: { x: number; y: number }) => {
       if (packId && typeof window !== "undefined") {
@@ -377,12 +382,13 @@ export default function PlaygroundCanvas({
       return;
     }
 
+    e.preventDefault();
     setIsPanning(true);
     panStartRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      startPanX: pan.x,
-      startPanY: pan.y,
+      startPanX: panRef.current.x,
+      startPanY: panRef.current.y,
     };
   };
 
@@ -419,6 +425,153 @@ export default function PlaygroundCanvas({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isPanning, savePanToStorage]);
+
+  // ─── Touch Panning & Multi-touch Pinch Zoom for Mobile ───────────────────
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    let touchPanStart: {
+      startX: number;
+      startY: number;
+      startPanX: number;
+      startPanY: number;
+    } | null = null;
+
+    let pinchStart: {
+      initialDistance: number;
+      initialMidX: number;
+      initialMidY: number;
+      initialZoom: number;
+      initialPan: { x: number; y: number };
+    } | null = null;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        const target = touch.target as HTMLElement | null;
+        const isInteractive = target?.closest?.(
+          "button, input, textarea, select, a, [data-draggable-table], [data-no-pan]",
+        );
+
+        if (isInteractive) {
+          touchPanStart = null;
+          return;
+        }
+
+        setIsPanning(true);
+        touchPanStart = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+        pinchStart = null;
+      } else if (e.touches.length === 2) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const rect = viewport.getBoundingClientRect();
+        const dist = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY,
+        );
+        const midX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+        const midY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+
+        pinchStart = {
+          initialDistance: dist,
+          initialMidX: midX,
+          initialMidY: midY,
+          initialZoom: zoomRef.current,
+          initialPan: { ...panRef.current },
+        };
+        touchPanStart = null;
+        setIsPanning(true);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (pinchStart && e.touches.length >= 2) {
+        if (e.cancelable) e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const rect = viewport.getBoundingClientRect();
+        const dist = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY,
+        );
+        const currentMidX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+        const currentMidY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+
+        if (pinchStart.initialDistance > 0) {
+          const factor = dist / pinchStart.initialDistance;
+          const nextZoom = Math.min(
+            2.5,
+            Math.max(0.25, Math.round(pinchStart.initialZoom * factor * 100) / 100),
+          );
+
+          const canvasX =
+            (pinchStart.initialMidX - pinchStart.initialPan.x) /
+            pinchStart.initialZoom;
+          const canvasY =
+            (pinchStart.initialMidY - pinchStart.initialPan.y) /
+            pinchStart.initialZoom;
+
+          const nextPan = {
+            x: Math.round(currentMidX - canvasX * nextZoom),
+            y: Math.round(currentMidY - canvasY * nextZoom),
+          };
+
+          setZoom(nextZoom);
+          setPan(nextPan);
+          try {
+            localStorage.setItem("lingdb_playground_zoom", String(nextZoom));
+          } catch {}
+        }
+      } else if (touchPanStart && e.touches.length === 1) {
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - touchPanStart.startX;
+        const dy = touch.clientY - touchPanStart.startY;
+        setPan({
+          x: Math.round(touchPanStart.startPanX + dx),
+          y: Math.round(touchPanStart.startPanY + dy),
+        });
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        if (touchPanStart || pinchStart) {
+          setIsPanning(false);
+          touchPanStart = null;
+          pinchStart = null;
+          savePanToStorage(panRef.current);
+        }
+      } else if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        pinchStart = null;
+        touchPanStart = {
+          startX: touch.clientX,
+          startY: touch.clientY,
+          startPanX: panRef.current.x,
+          startPanY: panRef.current.y,
+        };
+      }
+    };
+
+    viewport.addEventListener("touchstart", handleTouchStart, { passive: false });
+    viewport.addEventListener("touchmove", handleTouchMove, { passive: false });
+    viewport.addEventListener("touchend", handleTouchEnd, { passive: false });
+    viewport.addEventListener("touchcancel", handleTouchEnd, { passive: false });
+
+    return () => {
+      viewport.removeEventListener("touchstart", handleTouchStart);
+      viewport.removeEventListener("touchmove", handleTouchMove);
+      viewport.removeEventListener("touchend", handleTouchEnd);
+      viewport.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [savePanToStorage]);
 
   // ─── Space Bar Panning Shortcut ───────────────────────────────────────────
   useEffect(() => {
@@ -631,7 +784,7 @@ export default function PlaygroundCanvas({
         ref={viewportRef}
         onMouseDown={handleMouseDown}
         className={cn(
-          "relative w-full flex-1 overflow-hidden select-none outline-none",
+          "relative w-full flex-1 overflow-hidden select-none outline-none touch-none",
           isPanning
             ? "cursor-grabbing"
             : isSpacePressed

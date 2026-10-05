@@ -127,7 +127,7 @@ export default function DraggableDictionaryTable({
       <div
         {...listeners}
         {...attributes}
-        className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)] bg-primary-500/5 dark:bg-primary-500/10 rounded-t-2xl cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-color)] bg-primary-500/5 dark:bg-primary-500/10 rounded-t-2xl cursor-grab active:cursor-grabbing touch-none"
       >
         <div className="flex items-center gap-2 min-w-0">
           <GripVertical className="h-4 w-4 text-[var(--fg)]/40 shrink-0" />
