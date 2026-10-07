@@ -6,17 +6,18 @@ import { renderVerifyEmail } from "@/lib/email/templates/verify-email";
 import { renderForgotPasswordEmail } from "@/lib/email/templates/forgot-password";
 import { APP_URL } from "@/lib/utils/constants";
 import { sendAdminNewUserNotification } from "@/lib/email/notify-admin";
+import { getOrCreateDbUser } from "@/lib/db/auth-helper";
 
 /**
  * Sign up a new user with email + password.
- * Creates the user (unconfirmed) via admin API, generates a verification link,
- * and sends a custom email via SMTP.
+ * Creates the confirmed user directly via admin API without requiring email verification.
  */
 export async function signUp(
   email: string,
   password: string,
   captchaDuration?: number,
   honeypot?: string,
+  locale: string = "en",
 ) {
   try {
     // Honeypot check
@@ -38,12 +39,14 @@ export async function signUp(
     }
     const admin = createAdminClient();
 
-    // Create user with email_confirm: false
-    const { error: createError } = await admin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: false,
-    });
+    // Create user with email_confirm: true (direct signup without email verification)
+    const { data: createData, error: createError } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { locale },
+      });
 
     if (createError) {
       // If user already exists, return a friendly message
@@ -57,36 +60,16 @@ export async function signUp(
       return { success: false, error: createError.message };
     }
 
-    // Generate signup confirmation link
-    const { data: linkData, error: linkError } =
-      await admin.auth.admin.generateLink({
-        type: "signup",
+    // Ensure the user record is created in the database immediately
+    if (createData.user) {
+      await getOrCreateDbUser(createData.user, locale).catch(console.error);
+
+      // Notify admin (fire and forget)
+      sendAdminNewUserNotification(
+        email.split("@")[0],
         email,
-        password,
-      });
-
-    if (linkError || !linkData) {
-      console.error("Error generating verification link:", linkError);
-      return { success: false, error: "Failed to generate verification link." };
+      ).catch(console.error);
     }
-
-    // Build the verify URL using the hashed_token from the link properties
-    const tokenHash = linkData.properties.hashed_token;
-    const verifyUrl = `${APP_URL}/api/auth/verify?token_hash=${encodeURIComponent(tokenHash)}&type=signup`;
-
-    // Send verification email
-    const html = renderVerifyEmail(email.split("@")[0], verifyUrl);
-    await transporter.sendMail({
-      from: `"Lingdb" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: "Verify your Lingdb account",
-      html,
-    });
-
-    // Notify admin (fire and forget)
-    sendAdminNewUserNotification(email.split("@")[0], email).catch(
-      console.error,
-    );
 
     return { success: true };
   } catch (error: unknown) {

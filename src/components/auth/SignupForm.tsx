@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { signupSchema } from "@/lib/validators/auth";
 import OAuthButton from "./OAuthButton";
@@ -11,6 +12,7 @@ import { useTranslations } from "next-intl";
 import SlideCaptcha from "@/components/ui/SlideCaptcha";
 
 export default function SignupForm({ locale = "en" }: { locale?: string }) {
+  const router = useRouter();
   const supabase = createClient();
   const t = useTranslations("auth");
   const tCommon = useTranslations("common");
@@ -20,7 +22,6 @@ export default function SignupForm({ locale = "en" }: { locale?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [captchaDuration, setCaptchaDuration] = useState<number>(0);
   const [honeypot, setHoneypot] = useState("");
@@ -75,44 +76,34 @@ export default function SignupForm({ locale = "en" }: { locale?: string }) {
         password,
         captchaDuration,
         honeypot,
+        locale,
       );
 
       if (!registerResult.success) {
         setError(registerResult.error || t("errors.signup_failed"));
+        setIsLoading(false);
         return;
       }
 
-      setSuccess(true);
+      // Auto-login upon successful account creation
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setError(signInError.message);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(`/${locale}/dashboard`);
+      router.refresh();
     } catch {
       setError(tCommon("errors.generic"));
-    } finally {
       setIsLoading(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="w-full max-w-sm space-y-6 text-center">
-        <div className="rounded-xl bg-green-50 p-6 dark:bg-green-900/20">
-          <h2 className="mb-2 text-2xl font-bold text-green-700 dark:text-green-400">
-            {t("check_email_title")}
-          </h2>
-          <p className="text-lg text-green-600 dark:text-green-300">
-            {t.rich("check_email_body", {
-              email: email,
-              strong: (chunks) => <strong>{chunks}</strong>,
-            })}
-          </p>
-        </div>
-        <Link
-          href={`/${locale}/login`}
-          className="inline-block w-full rounded-xl border border-[var(--border-color)] bg-[var(--surface)] py-3 text-lg font-medium transition-colors hover:bg-[var(--border-color)]"
-        >
-          {t("return_to_login")}
-        </Link>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-sm space-y-6">

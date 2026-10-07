@@ -39,7 +39,10 @@ export async function getDbUser(supabaseId: string) {
  * Ensures a user exists in the local database, creating them if necessary.
  * This should be used in protected routes to fix sync issues.
  */
-export async function getOrCreateDbUser(supabaseUser: User) {
+export async function getOrCreateDbUser(
+  supabaseUser: User,
+  locale: string = "en",
+) {
   const logMessage = (msg: string) => {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] AUTH-HELPER: ${msg}`);
@@ -81,13 +84,16 @@ export async function getOrCreateDbUser(supabaseUser: User) {
       username = generateRandomUsername();
     }
 
+    const userLocale =
+      (supabaseUser.user_metadata?.locale as string) || locale || "en";
+
     const [newUser] = await db
       .insert(users)
       .values({
         supabaseId: supabaseUser.id,
         email: supabaseUser.email!,
         username,
-        locale: "en", // Default or extract from user metadata if available
+        locale: userLocale,
         tier: "FREE",
         aiCredits: 30,
       })
